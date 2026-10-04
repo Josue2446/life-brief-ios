@@ -8,6 +8,7 @@ struct StoryDetailView: View {
 
     @Environment(\.openURL) private var openURL
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
+    @AppStorage("accentColorTheme") private var accentColorTheme: AccentColorTheme = .pink
 
     @State private var commentText: String = ""
     @State private var feedbackStatusMessage: String?
@@ -109,13 +110,6 @@ struct StoryDetailView: View {
         .toolbarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    item.isRead.toggle()
-                } label: {
-                    Image(systemName: item.isRead ? "envelope.badge" : "envelope.open")
-                }
-                .accessibilityLabel(item.isRead ? "Mark as unread" : "Mark as read")
-
                 FavoriteHeartButton(item: item)
 
                 ShareLink(item: shareText, preview: SharePreview(item.headline)) {
@@ -216,6 +210,7 @@ struct StoryDetailView: View {
                     }
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(accentColorTheme.color)
                 .buttonBorderShape(.capsule)
                 .controlSize(.large)
             }
@@ -240,6 +235,7 @@ struct StoryDetailView: View {
                 .padding(.vertical, 4)
             }
             .buttonStyle(.borderedProminent)
+            .tint(accentColorTheme.color)
             .buttonBorderShape(.roundedRectangle(radius: 12))
             .controlSize(.regular)
             .sensoryFeedback(.selection, trigger: item.reaction) { _, _ in hapticsEnabled }
@@ -258,6 +254,7 @@ struct StoryDetailView: View {
                 .padding(.vertical, 4)
             }
             .buttonStyle(.bordered)
+            .tint(accentColorTheme.color)
             .buttonBorderShape(.roundedRectangle(radius: 12))
             .controlSize(.regular)
             .sensoryFeedback(.selection, trigger: item.reaction) { _, _ in hapticsEnabled }
@@ -283,9 +280,11 @@ struct StoryDetailView: View {
             feedbackStatusMessage = status
         }
         Task {
-            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            try? await Task.sleep(nanoseconds: 2_500_000_000)
             withAnimation {
-                feedbackStatusMessage = nil
+                if feedbackStatusMessage == status {
+                    feedbackStatusMessage = nil
+                }
             }
         }
     }
