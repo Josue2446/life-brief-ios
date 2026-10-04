@@ -5,6 +5,7 @@ import SwiftData
 struct TopicHomeView: View {
     @Bindable var topic: Topic
     @Binding var showingOrganizer: Bool
+    @Binding var organizerTab: OrganizerTab
     @Binding var showingSettings: Bool
     @State private var showingFavorites = false
     @State private var searchText = ""
@@ -73,6 +74,14 @@ struct TopicHomeView: View {
 
                     Menu {
                         Button {
+                            organizerTab = .sections
+                            showingOrganizer = true
+                        } label: {
+                            Label("Organize Sections", systemImage: "arrow.up.arrow.down")
+                        }
+
+                        Button {
+                            organizerTab = .topics
                             showingOrganizer = true
                         } label: {
                             Label("Organize Topics", systemImage: "slider.horizontal.3")

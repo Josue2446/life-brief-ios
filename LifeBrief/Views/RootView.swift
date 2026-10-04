@@ -12,6 +12,7 @@ struct RootView: View {
 
     @State private var selection: UUID?
     @State private var showingOrganizer = false
+    @State private var organizerTab: OrganizerTab = .sections
     @State private var showingSettings = false
 
     private var visibleTopics: [Topic] {
@@ -35,6 +36,7 @@ struct RootView: View {
                 TopicHomeView(
                     topic: topic,
                     showingOrganizer: $showingOrganizer,
+                    organizerTab: $organizerTab,
                     showingSettings: $showingSettings
                 )
                 .id(topic.id)
@@ -54,7 +56,12 @@ struct RootView: View {
             }
         }
         .sheet(isPresented: $showingOrganizer) {
-            NavigationStack { OrganizerView() }
+            NavigationStack {
+                OrganizerView(
+                    initialTab: organizerTab,
+                    selectedTopic: selectedTopic
+                )
+            }
         }
         .sheet(isPresented: $showingSettings) {
             NavigationStack { SettingsView() }
@@ -97,8 +104,8 @@ enum TextSizeOverride: String, CaseIterable, Identifiable {
         switch self {
         case .system: return nil
         case .large: return .xxLarge
-        case .extraLarge: return .accessibility1
-        case .accessibility: return .accessibility3
+        case .extraLarge: return .xxxLarge
+        case .accessibility: return .accessibility1
         }
     }
 }
