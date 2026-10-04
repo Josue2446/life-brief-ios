@@ -1,11 +1,12 @@
 import SwiftUI
 import SwiftData
 
-/// Organizer: add topics, reorder them, show or hide them, and reorder
-/// the sections inside a topic. All changes persist immediately.
+/// Organize topics: add new ones with native SF Symbols, reorder the
+/// tabs, and toggle visibility. Section order within each topic is also editable.
 struct OrganizerView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
+
     @Query(sort: \Topic.sortOrder) private var topics: [Topic]
 
     @State private var newTopicName = ""
@@ -29,7 +30,7 @@ struct OrganizerView: View {
                             Text(topic.name)
                         } icon: {
                             Image(systemName: topic.systemImage)
-                                .foregroundStyle(.tint)
+                                .foregroundStyle(.primary)
                         }
                     }
                 }
@@ -61,117 +62,110 @@ struct OrganizerView: View {
                         .foregroundStyle(.secondary)
 
                     ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 12) {
+                        HStack(spacing: 8) {
                             ForEach(symbolChoices, id: \.self) { symbol in
                                 Button {
                                     newTopicSymbol = symbol
                                 } label: {
                                     Image(systemName: symbol)
-                                        .font(.body)
-                                        .frame(width: 40, height: 40)
-                                        .foregroundStyle(newTopicSymbol == symbol ? .white : .primary)
+                                        .frame(width: 36, height: 36)
                                         .background(
-                                            Circle()
-                                                .fill(newTopicSymbol == symbol ? Color.accentColor : Color(uiColor: .tertiarySystemFill))
+                                            newTopicSymbol == symbol
+                                                ? Color(uiColor: .secondarySystemFill)
+                                                : Color(uiColor: .tertiarySystemGroupedBackground),
+                                            in: .rect(cornerRadius: 8, style: .continuous)
                                         )
+                                        .overlay {
+                                            if newTopicSymbol == symbol {
+                                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                    .strokeBorder(Color.primary, lineWidth: 1.5)
+                                            }
+                                        }
                                 }
                                 .buttonStyle(.plain)
-                                .accessibilityLabel(symbol)
                             }
                         }
-                        .padding(.vertical, 4)
                     }
                 }
-                .padding(.vertical, 4)
 
-                Button("Add Topic") { addTopic() }
-                    .disabled(newTopicName.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Add Topic") {
+                    addTopic()
+                }
+                .disabled(newTopicName.trimmingCharacters(in: .whitespaces).isEmpty)
             }
         }
-        .navigationTitle("Organize")
+        .navigationTitle("Organize Topics")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
             }
-#if os(iOS)
-            ToolbarItem(placement: .topBarLeading) {
-                EditButton()
-            }
-#endif
         }
     }
 
     private func visibilityBinding(for topic: Topic) -> Binding<Bool> {
         Binding(
             get: { topic.isVisible },
-            set: { topic.isVisible = $0; try? context.save() }
+            set: { topic.isVisible = $0 }
         )
     }
 
     private func moveTopics(from source: IndexSet, to destination: Int) {
-        var ordered = topics
-        ordered.move(fromOffsets: source, toOffset: destination)
-        for (index, topic) in ordered.enumerated() {
+        var reordered = topics
+        reordered.move(fromOffsets: source, toOffset: destination)
+        for (index, topic) in reordered.enumerated() {
             topic.sortOrder = index
         }
-        try? context.save()
     }
 
     private func deleteTopics(at offsets: IndexSet) {
         for index in offsets {
             context.delete(topics[index])
         }
-        try? context.save()
     }
 
     private func addTopic() {
-        let name = newTopicName.trimmingCharacters(in: .whitespaces)
-        guard !name.isEmpty else { return }
-        let topic = Topic(
-            name: name,
+        let trimmed = newTopicName.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+
+        let newTopic = Topic(
+            feedID: trimmed.lowercased().replacingOccurrences(of: " ", with: "-"),
+            name: trimmed,
             systemImage: newTopicSymbol,
             sortOrder: topics.count
         )
-        context.insert(topic)
-        try? context.save()
+        context.insert(newTopic)
         newTopicName = ""
         nameFieldFocused = false
     }
 }
 
-/// Reorder the sections inside one topic's editions.
+/// Allows dragging sections within a single topic to customize reading order.
 struct SectionOrderView: View {
     @Bindable var topic: Topic
-    @Environment(\.modelContext) private var context
+
+    private var sortedSections: [BriefSection] {
+        topic.editions.first?.sections.sorted { $0.sortOrder < $1.sortOrder } ?? []
+    }
 
     var body: some View {
         List {
-            Section {
-                if let edition = topic.latestEdition {
-                    ForEach(edition.sortedSections) { section in
-                        Label(section.title, systemImage: section.kind.systemImage)
-                    }
-                    .onMove { source, destination in
-                        var ordered = edition.sortedSections
-                        ordered.move(fromOffsets: source, toOffset: destination)
-                        for (index, section) in ordered.enumerated() {
-                            section.sortOrder = index
-                        }
-                        try? context.save()
-                    }
-                } else {
-                    Text("No sections yet. They will appear with the first edition.")
-                        .foregroundStyle(.secondary)
-                }
-            } footer: {
-                Text("Drag to reorder. For example, move OHSU above the overview.")
+            ForEach(sortedSections) { section in
+                Label(section.title, systemImage: section.kind.systemImage)
             }
+            .onMove(perform: moveSections)
         }
         .navigationTitle(topic.name)
         .toolbar {
-#if os(iOS)
             EditButton()
-#endif
+        }
+    }
+
+    private func moveSections(from source: IndexSet, to destination: Int) {
+        guard let edition = topic.editions.first else { return }
+        var sections = edition.sections.sorted { $0.sortOrder < $1.sortOrder }
+        sections.move(fromOffsets: source, toOffset: destination)
+        for (index, section) in sections.enumerated() {
+            section.sortOrder = index
         }
     }
 }

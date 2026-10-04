@@ -18,7 +18,7 @@ struct OHSUSectionView: View {
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "cross.case.fill")
                         .font(.subheadline)
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(.secondary)
                         .frame(width: 24)
                         .padding(.top, 2)
 
@@ -26,9 +26,13 @@ struct OHSUSectionView: View {
                         Text(item.headline)
                             .font(.subheadline.weight(.semibold))
                         if !item.body.isEmpty {
-                            Text(item.body)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                            ExpandableText(
+                                text: item.body,
+                                lineLimit: 2,
+                                font: .subheadline,
+                                foregroundStyle: .secondary,
+                                lineSpacing: 3
+                            )
                         }
                     }
                 }
@@ -61,18 +65,22 @@ struct EventRow: View {
         } label: {
             HStack(spacing: 12) {
                 Image(systemName: "calendar")
-                    .foregroundStyle(.tint)
+                    .foregroundStyle(.secondary)
                     .frame(width: 34, height: 34)
-                    .background(.tint.opacity(0.12), in: .circle)
+                    .background(Color(uiColor: .tertiarySystemFill), in: .circle)
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(event.headline)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.primary)
                     if !event.body.isEmpty {
-                        Text(event.body)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+                        ExpandableText(
+                            text: event.body,
+                            lineLimit: 2,
+                            font: .caption,
+                            foregroundStyle: .secondary,
+                            lineSpacing: 2
+                        )
                     }
                 }
 
@@ -113,10 +121,10 @@ struct CommunitySectionView: View {
                         if let tag = item.tag, !tag.isEmpty {
                             Text(tag)
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(.tint)
+                                .foregroundStyle(.secondary)
                                 .padding(.horizontal, 9)
                                 .padding(.vertical, 5)
-                                .background(.tint.opacity(0.12), in: .capsule)
+                                .background(Color(uiColor: .tertiarySystemFill), in: .capsule)
                         }
                     }
                 }
@@ -134,7 +142,7 @@ struct SummarySectionView: View {
             ForEach(items) { item in
                 HStack(alignment: .top, spacing: 12) {
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(.secondary)
                         .font(.body)
                     Text(item.headline)
                         .font(.subheadline)

@@ -44,11 +44,13 @@ struct StoryDetailView: View {
                 }
 
                 if !item.body.isEmpty {
-                    Text(item.body)
-                        .font(.body)
-                        .foregroundStyle(.primary)
-                        .lineSpacing(6)
-                        .textSelection(.enabled)
+                    ExpandableText(
+                        text: item.body,
+                        lineLimit: 4,
+                        font: .body,
+                        foregroundStyle: .primary,
+                        lineSpacing: 6
+                    )
                 }
 
                 if let url = item.sourceLinkURL {
@@ -131,7 +133,7 @@ struct StoryDetailView: View {
                 if let sourceName = item.sourceName {
                     Label(sourceName, systemImage: "newspaper")
                         .font(.caption.weight(.bold))
-                        .foregroundStyle(.tint)
+                        .foregroundStyle(.secondary)
                         .textCase(.uppercase)
                 }
 

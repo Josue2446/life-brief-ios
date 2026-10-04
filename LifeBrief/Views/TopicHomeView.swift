@@ -1,58 +1,80 @@
 import SwiftUI
 import SwiftData
 
-/// Home of one topic: its latest edition, with search and native navigation.
+/// The primary reading surface for a topic: latest edition, previous editions, and story cards.
 struct TopicHomeView: View {
     @Bindable var topic: Topic
     @Binding var showingOrganizer: Bool
     @Binding var showingSettings: Bool
-    @State private var showingSavedStories = false
-    @State private var searchText = ""
+
+    @Query private var editions: [Edition]
+    @State private var showingSaved = false
+
+    init(
+        topic: Topic,
+        showingOrganizer: Binding<Bool>,
+        showingSettings: Binding<Bool>
+    ) {
+        self.topic = topic
+        self._showingOrganizer = showingOrganizer
+        self._showingSettings = showingSettings
+
+        let topicID = topic.id
+        _editions = Query(
+            filter: #Predicate<Edition> { edition in
+                edition.topic?.id == topicID
+            },
+            sort: \Edition.date,
+            order: .reverse
+        )
+    }
+
+    private var latestEdition: Edition? {
+        editions.first
+    }
 
     var body: some View {
         NavigationStack {
             Group {
-                if let edition = topic.latestEdition {
-                    EditionView(edition: edition, searchText: searchText)
+                if let edition = latestEdition {
+                    EditionView(edition: edition)
                 } else {
                     ContentUnavailableView(
-                        "\(topic.name) is on its way",
-                        systemImage: topic.systemImage,
-                        description: Text("New briefings will appear here automatically.")
+                        "No Editions Yet",
+                        systemImage: "newspaper",
+                        description: Text("Editions published for \(topic.name) will appear here.")
                     )
                 }
             }
-            .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(topic.name)
-            .toolbarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "Search \(topic.name)")
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showingOrganizer = true
+                    } label: {
+                        Image(systemName: "square.grid.2x2")
+                    }
+                    .accessibilityLabel("Organize topics")
+                }
+
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
-                        showingSavedStories = true
+                        showingSaved = true
                     } label: {
-                        Label("Saved", systemImage: "bookmark")
+                        Image(systemName: "bookmark")
                     }
+                    .accessibilityLabel("Saved stories")
 
-                    Menu {
-                        Button {
-                            showingOrganizer = true
-                        } label: {
-                            Label("Organize Topics", systemImage: "slider.horizontal.3")
-                        }
-
-                        Button {
-                            showingSettings = true
-                        } label: {
-                            Label("Settings", systemImage: "gearshape")
-                        }
+                    Button {
+                        showingSettings = true
                     } label: {
-                        Image(systemName: "ellipsis.circle")
+                        Image(systemName: "gearshape")
                     }
-                    .accessibilityLabel("More Options")
+                    .accessibilityLabel("Settings")
                 }
             }
-            .sheet(isPresented: $showingSavedStories) {
+            .sheet(isPresented: $showingSaved) {
                 NavigationStack {
                     SavedStoriesView()
                 }
@@ -61,88 +83,58 @@ struct TopicHomeView: View {
     }
 }
 
-/// Renders a single edition with a clear editorial hierarchy and native pull-to-refresh.
+/// Renders a single edition's sections vertically with native spacing.
 struct EditionView: View {
     @Bindable var edition: Edition
-    var searchText: String
-    @Environment(\.modelContext) private var context
-    @AppStorage("feedURLString") private var feedURLString = BriefStore.defaultFeedURLString
-    @AppStorage("hapticsEnabled") private var hapticsEnabled = true
+    @Query private var allItems: [StoryItem]
 
-    /// Structured search result model that pairs a section with its filtered items.
-    private struct FilteredSectionResult: Identifiable {
-        var id: PersistentIdentifier { section.id }
-        var section: BriefSection
-        var matchingItems: [StoryItem]
+    init(edition: Edition) {
+        self.edition = edition
+        let editionID = edition.id
+        _allItems = Query(
+            filter: #Predicate<StoryItem> { item in
+                item.section?.edition?.id == editionID
+            },
+            sort: \StoryItem.sortOrder
+        )
     }
 
-    private var filteredResults: [FilteredSectionResult] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        return edition.sortedSections.compactMap { section in
-            let items: [StoryItem]
-            if query.isEmpty {
-                items = section.sortedItems
-            } else {
-                items = section.sortedItems.filter {
-                    $0.headline.localizedCaseInsensitiveContains(query)
-                        || $0.body.localizedCaseInsensitiveContains(query)
-                }
-            }
-            guard !items.isEmpty else { return nil }
-            return FilteredSectionResult(section: section, matchingItems: items)
-        }
-    }
-
-    private var totalStoryCount: Int {
-        edition.sortedSections.reduce(0) { $0 + $1.sortedItems.count }
+    private var sortedSections: [BriefSection] {
+        edition.sections.sorted { $0.sortOrder < $1.sortOrder }
     }
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 28) {
-                if !searchText.isEmpty && filteredResults.isEmpty {
-                    ContentUnavailableView.search(text: searchText)
-                        .padding(.top, 60)
-                } else {
-                    if searchText.isEmpty {
-                        editionHeader
-                    }
+                header
 
-                    ForEach(filteredResults) { result in
-                        SectionView(section: result.section, items: result.matchingItems)
-                    }
+                ForEach(sortedSections) { section in
+                    let sectionID = section.id
+                    let sectionItems = allItems.filter { $0.section?.id == sectionID }
+                    SectionView(section: section, items: sectionItems)
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
+            .padding(.horizontal, 16)
+            .padding(.top, 12)
             .padding(.bottom, 96) // Inset comfortably above floating glass capsule
         }
         .background(Color(uiColor: .systemGroupedBackground))
-        .scrollEdgeEffectStyle(.soft, for: .all)
-        .refreshable {
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            _ = try? await BriefStore.refreshFeed(from: feedURLString, into: context)
-        }
     }
 
-    private var editionHeader: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 8) {
-                Label(edition.dateLabel, systemImage: "calendar")
-                Text("•")
-                Text("\(totalStoryCount) \(totalStoryCount == 1 ? "story" : "stories")")
-            }
-            .font(.caption.weight(.bold))
-            .foregroundStyle(.secondary)
-            .textCase(.uppercase)
+    private var header: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(edition.dateLabel.uppercased())
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .tracking(0.5)
 
-            Text(edition.theme)
-                .font(.title3.weight(.medium))
-                .foregroundStyle(.primary)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
+            if !edition.theme.isEmpty {
+                Text(edition.theme)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            }
         }
-        .padding(.vertical, 4)
+        .padding(.top, 4)
         .accessibilityElement(children: .combine)
     }
 }
@@ -192,10 +184,15 @@ struct SectionView: View {
                 }
             case .overview, .custom:
                 BriefCard {
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 14) {
                         ForEach(items) { item in
-                            Text(item.body.isEmpty ? item.headline : item.body)
-                                .font(.body)
+                            ExpandableText(
+                                text: item.body.isEmpty ? item.headline : item.body,
+                                lineLimit: 3,
+                                font: .body,
+                                foregroundStyle: .primary,
+                                lineSpacing: 5
+                            )
                         }
                     }
                 }
@@ -204,7 +201,7 @@ struct SectionView: View {
     }
 }
 
-/// A concise card that prioritizes headline, unread dot indicator, source metadata, and rich context menus.
+/// A concise card that prioritizes headline, unread dot indicator, source metadata, and expandable snippets.
 struct StoryCard: View {
     @Bindable var item: StoryItem
     @Environment(\.openURL) private var openURL
@@ -246,7 +243,7 @@ struct StoryCard: View {
                     HStack(alignment: .top, spacing: 10) {
                         if !item.isRead {
                             Circle()
-                                .fill(Color.accentColor)
+                                .fill(Color.primary)
                                 .frame(width: 8, height: 8)
                                 .padding(.top, 6)
                         }
@@ -261,27 +258,31 @@ struct StoryCard: View {
                         if let reaction = item.reaction {
                             Image(systemName: reaction.filledSystemImage)
                                 .font(.subheadline)
-                                .foregroundStyle(reaction == .like ? Color.accentColor : Color.secondary)
+                                .foregroundStyle(Color.primary)
                         }
 
                         Image(systemName: item.isBookmarked ? "bookmark.fill" : "bookmark")
                             .font(.subheadline)
-                            .foregroundStyle(item.isBookmarked ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary))
+                            .foregroundStyle(item.isBookmarked ? AnyShapeStyle(Color.primary) : AnyShapeStyle(.tertiary))
                     }
 
                     if !item.body.isEmpty {
-                        Text(item.body)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .lineLimit(3)
-                            .multilineTextAlignment(.leading)
-                            .padding(.leading, item.isRead ? 0 : 18)
+                        ExpandableText(
+                            text: item.body,
+                            lineLimit: 2,
+                            font: .subheadline,
+                            foregroundStyle: .secondary,
+                            lineSpacing: 4,
+                            allowSelection: false
+                        )
+                        .multilineTextAlignment(.leading)
+                        .padding(.leading, item.isRead ? 0 : 18)
                     }
 
                     if let sourceName = item.sourceName {
                         Label(sourceName, systemImage: "arrow.up.right")
                             .font(.caption.weight(.medium))
-                            .foregroundStyle(.tint)
+                            .foregroundStyle(.secondary)
                             .padding(.leading, item.isRead ? 0 : 18)
                     }
                 }
@@ -329,19 +330,13 @@ struct StoryCard: View {
 
             if let url = item.sourceLinkURL {
                 Divider()
-
                 Button {
-                    UIPasteboard.general.url = url
+                    openURL(url)
                 } label: {
-                    Label("Copy Link", systemImage: "doc.on.doc")
-                }
-
-                ShareLink(item: url, subject: Text(item.headline)) {
-                    Label("Share Link", systemImage: "square.and.arrow.up")
+                    Label("Open Original Article", systemImage: "safari")
                 }
             }
         }
-        .accessibilityHint("Opens the full story.")
     }
 
     private func toggleReaction(_ reaction: ReactionType) {

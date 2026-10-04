@@ -1,30 +1,34 @@
 import SwiftUI
 import SwiftData
 
-/// Dedicated screen for browsing bookmarked stories, styled like Apple News "Saved Stories".
+/// All bookmarked stories across all topics, searchable and manageable in one place.
 struct SavedStoriesView: View {
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.modelContext) private var context
-    @Query(filter: #Predicate<StoryItem> { $0.isBookmarked }) private var bookmarkedStories: [StoryItem]
+    @Query(
+        filter: #Predicate<StoryItem> { $0.isBookmarked },
+        sort: \StoryItem.headline
+    ) private var savedStories: [StoryItem]
+
     @State private var searchText = ""
 
     private var filteredStories: [StoryItem] {
-        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !query.isEmpty else { return bookmarkedStories }
-        return bookmarkedStories.filter {
-            $0.headline.localizedCaseInsensitiveContains(query)
-                || $0.body.localizedCaseInsensitiveContains(query)
-                || ($0.sourceName?.localizedCaseInsensitiveContains(query) ?? false)
+        if searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            return savedStories
+        }
+        return savedStories.filter { item in
+            item.headline.localizedCaseInsensitiveContains(searchText) ||
+            item.body.localizedCaseInsensitiveContains(searchText) ||
+            (item.sourceName?.localizedCaseInsensitiveContains(searchText) ?? false)
         }
     }
 
     var body: some View {
         Group {
-            if bookmarkedStories.isEmpty {
+            if savedStories.isEmpty {
                 ContentUnavailableView(
                     "No Saved Stories",
                     systemImage: "bookmark",
-                    description: Text("Stories you bookmark while reading will be saved here for easy reference.")
+                    description: Text("Stories you bookmark while reading will appear here.")
                 )
             } else if filteredStories.isEmpty {
                 ContentUnavailableView.search(text: searchText)
@@ -38,7 +42,7 @@ struct SavedStoriesView: View {
                                 if let source = item.sourceName {
                                     Text(source)
                                         .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.tint)
+                                        .foregroundStyle(.secondary)
                                         .textCase(.uppercase)
                                 }
                                 Text(item.headline)
@@ -47,10 +51,14 @@ struct SavedStoriesView: View {
                                     .lineLimit(2)
 
                                 if !item.body.isEmpty {
-                                    Text(item.body)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(2)
+                                    ExpandableText(
+                                        text: item.body,
+                                        lineLimit: 2,
+                                        font: .subheadline,
+                                        foregroundStyle: .secondary,
+                                        lineSpacing: 3,
+                                        allowSelection: false
+                                    )
                                 }
                             }
                             .padding(.vertical, 4)
@@ -73,7 +81,6 @@ struct SavedStoriesView: View {
                                     systemImage: item.isRead ? "envelope.badge" : "envelope.open"
                                 )
                             }
-                            .tint(.blue)
                         }
                     }
                 }
@@ -85,9 +92,7 @@ struct SavedStoriesView: View {
         .searchable(text: $searchText, prompt: "Search Saved Stories")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
-                Button("Done") {
-                    dismiss()
-                }
+                Button("Done") { dismiss() }
             }
         }
     }
