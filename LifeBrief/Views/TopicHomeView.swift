@@ -365,19 +365,13 @@ struct SectionView: View {
 
             switch section.kind {
             case .stories:
-                ForEach(items) { item in
-                    StoryCard(item: item)
-                }
+                TopStoriesSectionView(items: items)
             case .ohsu:
-                BriefCard {
-                    OHSUSectionView(items: items)
-                }
+                OHSUSectionView(items: items)
             case .community:
                 CommunitySectionView(items: items)
             case .summary:
-                BriefCard {
-                    SummarySectionView(items: items)
-                }
+                SummarySectionView(items: items)
             case .overview, .custom:
                 BriefCard {
                     VStack(alignment: .leading, spacing: 14) {
@@ -393,6 +387,222 @@ struct SectionView: View {
                 }
             }
         }
+    }
+}
+
+/// Top Stories section featuring a lead hero story card followed by an Apple News-style
+/// grouped container of compact scannable stories with collapsible expansion.
+struct TopStoriesSectionView: View {
+    var items: [StoryItem]
+    @AppStorage("accentColorTheme") private var accentColorTheme: AccentColorTheme = .pink
+    @State private var isExpanded = false
+
+    /// Standard number of secondary stories shown before offering "Show more"
+    private let initialSecondaryLimit = 3
+
+    private var leadStory: StoryItem? {
+        items.first
+    }
+
+    private var secondaryStories: [StoryItem] {
+        Array(items.dropFirst())
+    }
+
+    private var visibleSecondaryStories: [StoryItem] {
+        if isExpanded || secondaryStories.count <= initialSecondaryLimit {
+            return secondaryStories
+        } else {
+            return Array(secondaryStories.prefix(initialSecondaryLimit))
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            // 1. Lead Hero Story
+            if let lead = leadStory {
+                StoryCard(item: lead)
+            }
+
+            // 2. Grouped Compact Stories Container
+            if !secondaryStories.isEmpty {
+                BriefCard {
+                    VStack(alignment: .leading, spacing: 0) {
+                        HStack {
+                            Text("More Top Stories")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(.secondary)
+                                .textCase(.uppercase)
+
+                            Spacer()
+
+                            Text("\(secondaryStories.count)")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.secondary)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 2)
+                                .background(Color(uiColor: .tertiarySystemFill), in: .capsule)
+                        }
+                        .padding(.bottom, 12)
+
+                        ForEach(Array(visibleSecondaryStories.enumerated()), id: \.element.id) { index, item in
+                            if index > 0 {
+                                Divider()
+                                    .padding(.vertical, 10)
+                            }
+                            CompactStoryRow(item: item)
+                        }
+
+                        // Collapsible expansion toggle if there are more than 3 secondary stories
+                        if secondaryStories.count > initialSecondaryLimit {
+                            Divider()
+                                .padding(.vertical, 10)
+
+                            Button {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                    isExpanded.toggle()
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(isExpanded ? "Show fewer stories" : "Show \(secondaryStories.count - initialSecondaryLimit) more stories")
+                                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                                        .font(.caption2.weight(.bold))
+                                }
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(accentColorTheme.color)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .padding(.top, 4)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// Scannable compact row for secondary top stories.
+struct CompactStoryRow: View {
+    @Bindable var item: StoryItem
+    @Environment(\.openURL) private var openURL
+    @AppStorage("hapticsEnabled") private var hapticsEnabled = true
+
+    var body: some View {
+        NavigationLink {
+            StoryDetailView(item: item)
+        } label: {
+            HStack(alignment: .center, spacing: 12) {
+                // Unread dot
+                if !item.isRead {
+                    Circle()
+                        .fill(Color.primary)
+                        .frame(width: 7, height: 7)
+                }
+
+                VStack(alignment: .leading, spacing: 4) {
+                    if let source = item.sourceName {
+                        Text(source)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(.secondary)
+                            .textCase(.uppercase)
+                    }
+
+                    Text(item.headline)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(item.isRead ? .secondary : .primary)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if !item.body.isEmpty {
+                        Text(item.body)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .lineLimit(1)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+                HStack(alignment: .center, spacing: 8) {
+                    if let url = item.imageLinkURL {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(width: 52, height: 52)
+                                    .clipped()
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            default:
+                                EmptyView()
+                            }
+                        }
+                    }
+
+                    FavoriteHeartButton(item: item)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            Button {
+                item.isRead.toggle()
+            } label: {
+                Label(
+                    item.isRead ? "Mark as Unread" : "Mark as Read",
+                    systemImage: item.isRead ? "envelope.badge" : "envelope.open"
+                )
+            }
+
+            Button {
+                item.isFavorite.toggle()
+            } label: {
+                Label(
+                    item.isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                    systemImage: item.isFavorite ? "heart.slash" : "heart.fill"
+                )
+            }
+
+            Divider()
+
+            Button {
+                toggleReaction(.like)
+            } label: {
+                Label(
+                    item.reaction == .like ? "Remove Helpful Rating" : "Mark as Helpful",
+                    systemImage: item.reaction == .like ? "hand.thumbsup.fill" : "hand.thumbsup"
+                )
+            }
+
+            Button {
+                toggleReaction(.dislike)
+            } label: {
+                Label(
+                    item.reaction == .dislike ? "Remove Not Helpful Rating" : "Mark as Not Helpful",
+                    systemImage: item.reaction == .dislike ? "hand.thumbsdown.fill" : "hand.thumbsdown"
+                )
+            }
+
+            if let url = item.sourceLinkURL {
+                Divider()
+                Button {
+                    openURL(url)
+                } label: {
+                    Label("Open Original Article", systemImage: "safari")
+                }
+            }
+        }
+    }
+
+    private func toggleReaction(_ reaction: ReactionType) {
+        if item.reaction == reaction {
+            item.reaction = nil
+        } else {
+            item.reaction = reaction
+        }
+        FeedbackStore.recordFeedback(for: item, reaction: item.reaction, comment: item.userComment)
     }
 }
 

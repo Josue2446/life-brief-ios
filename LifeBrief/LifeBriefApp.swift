@@ -124,4 +124,28 @@ enum AccentColorTheme: String, CaseIterable, Identifiable {
             return Color(red: 0.557, green: 0.557, blue: 0.576)
         }
     }
+
+    /// Darker, richer tone of the accent color for high-contrast filled buttons with white text.
+    var darkerColor: Color {
+        switch self {
+        case .multicolor:
+            return Color(red: 0.80, green: 0.10, blue: 0.24)
+        case .blue:
+            return Color(red: 0.0, green: 0.35, blue: 0.82)
+        case .purple:
+            return Color(red: 0.52, green: 0.20, blue: 0.72)
+        case .pink:
+            return Color(red: 0.82, green: 0.10, blue: 0.25)
+        case .red:
+            return Color(red: 0.82, green: 0.15, blue: 0.12)
+        case .orange:
+            return Color(red: 0.85, green: 0.44, blue: 0.0)
+        case .yellow:
+            return Color(red: 0.76, green: 0.54, blue: 0.0)
+        case .green:
+            return Color(red: 0.14, green: 0.58, blue: 0.24)
+        case .graphite:
+            return Color(red: 0.35, green: 0.35, blue: 0.38)
+        }
+    }
 }
