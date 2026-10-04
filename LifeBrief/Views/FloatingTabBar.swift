@@ -20,7 +20,7 @@ struct FloatingTabBar: View {
     @State private var lastFeedbackIndex: Int = 0
     @State private var hasInitializedPosition: Bool = false
 
-    private static let appleMusicTint = Color(red: 0.99, green: 0.18, blue: 0.33)
+    static let appleMusicTint = Color(red: 0.99, green: 0.18, blue: 0.33)
 
     private var selectedIndex: Int {
         topics.firstIndex(where: { $0.id == selection }) ?? 0

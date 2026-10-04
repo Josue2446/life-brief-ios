@@ -10,54 +10,14 @@ struct TopicHomeView: View {
     @State private var showingSearch = false
     @State private var searchText = ""
     @FocusState private var isSearchFocused: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 if showingSearch {
-                    HStack(spacing: 10) {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundStyle(.secondary)
-
-                        TextField("Search \(topic.name)...", text: $searchText)
-                            .textFieldStyle(.plain)
-                            .focused($isSearchFocused)
-                            .submitLabel(.search)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-
-                        if !searchText.isEmpty {
-                            Button {
-                                searchText = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                        }
-
-                        Button("Cancel") {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                showingSearch = false
-                                searchText = ""
-                                isSearchFocused = false
-                            }
-                        }
-                        .font(.subheadline.weight(.medium))
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(uiColor: .secondarySystemGroupedBackground))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .strokeBorder(Color.primary.opacity(0.08), lineWidth: 0.5)
-                    )
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 8)
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    searchBar
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
 
                 Group {
@@ -74,20 +34,24 @@ struct TopicHomeView: View {
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(topic.name)
-            .toolbarTitleDisplayMode(.large)
+            .toolbarTitleDisplayMode(showingSearch ? .inline : .large)
+            .animation(.spring(response: 0.32, dampingFraction: 0.8), value: showingSearch)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
+                        withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
                             showingSearch.toggle()
                             if showingSearch {
                                 isSearchFocused = true
                             } else {
                                 isSearchFocused = false
+                                searchText = ""
                             }
                         }
                     } label: {
                         Image(systemName: "magnifyingglass")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(showingSearch ? FloatingTabBar.appleMusicTint : Color.primary)
                     }
                     .accessibilityLabel("Search")
                 }
@@ -125,6 +89,78 @@ struct TopicHomeView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Apple Liquid Glass Search Bar
+
+    @ViewBuilder
+    private var searchBar: some View {
+        HStack(spacing: 12) {
+            // Liquid Glass Search Input Capsule
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.secondary)
+
+                TextField("Search \(topic.name)...", text: $searchText)
+                    .textFieldStyle(.plain)
+                    .font(.subheadline)
+                    .focused($isSearchFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .glassEffect(.regular.interactive(), in: Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(0.85),
+                                Color.white.opacity(0.20),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.8
+                    )
+            }
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.08),
+                radius: 8,
+                x: 0,
+                y: 4
+            )
+
+            // Native Apple Style Cancel Button outside the capsule
+            Button("Cancel") {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
+                    showingSearch = false
+                    searchText = ""
+                    isSearchFocused = false
+                }
+            }
+            .font(.subheadline.weight(.medium))
+            .foregroundStyle(FloatingTabBar.appleMusicTint)
+            .transition(.move(edge: .trailing).combined(with: .opacity))
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 4)
+        .padding(.bottom, 8)
     }
 }
 
