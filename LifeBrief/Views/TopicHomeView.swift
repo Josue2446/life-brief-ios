@@ -39,13 +39,12 @@ struct TopicHomeView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
-                            showingSearch.toggle()
-                            if showingSearch {
+                        if showingSearch {
+                            dismissSearch()
+                        } else {
+                            withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+                                showingSearch = true
                                 isSearchFocused = true
-                            } else {
-                                isSearchFocused = false
-                                searchText = ""
                             }
                         }
                     } label: {
@@ -117,8 +116,15 @@ struct TopicHomeView: View {
                         Image(systemName: "xmark.circle.fill")
                             .font(.system(size: 14))
                             .foregroundStyle(.secondary)
+                            .padding(4)
+                            .contentShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .simultaneousGesture(
+                        TapGesture().onEnded {
+                            searchText = ""
+                        }
+                    )
                 }
             }
             .padding(.horizontal, 14)
@@ -147,20 +153,39 @@ struct TopicHomeView: View {
             )
 
             // Native Apple Style Cancel Button outside the capsule
-            Button("Cancel") {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.75)) {
-                    showingSearch = false
-                    searchText = ""
-                    isSearchFocused = false
-                }
+            Button {
+                dismissSearch()
+            } label: {
+                Text("Cancel")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(FloatingTabBar.appleMusicTint)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 6)
+                    .contentShape(Rectangle())
             }
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(FloatingTabBar.appleMusicTint)
+            .buttonStyle(.plain)
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    dismissSearch()
+                }
+            )
             .transition(.move(edge: .trailing).combined(with: .opacity))
         }
         .padding(.horizontal, 16)
         .padding(.top, 4)
         .padding(.bottom, 8)
+    }
+
+    // MARK: - Dismiss Search Helper
+
+    private func dismissSearch() {
+        guard showingSearch else { return }
+        isSearchFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
+            searchText = ""
+            showingSearch = false
+        }
     }
 }
 
@@ -220,6 +245,7 @@ struct EditionView: View {
             .padding(.top, 8)
             .padding(.bottom, 96) // Inset comfortably above floating glass capsule
         }
+        .scrollDismissesKeyboard(.interactively)
         .scrollEdgeEffectStyle(.soft, for: .top)
         .background(Color(uiColor: .systemGroupedBackground))
         .refreshable {
