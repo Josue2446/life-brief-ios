@@ -369,9 +369,7 @@ struct SectionView: View {
                     StoryCard(item: item)
                 }
             case .ohsu:
-                BriefCard {
-                    OHSUSectionView(items: items)
-                }
+                OHSUSectionView(items: items)
             case .community:
                 CommunitySectionView(items: items)
             case .summary:
