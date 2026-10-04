@@ -1,8 +1,10 @@
 import SwiftUI
 import SwiftData
 
-/// Settings, built only from standard iOS controls per the
-/// Human Interface Guidelines: segmented pickers, toggles, text fields.
+/// Settings, crafted using modern Apple Human Interface Guidelines:
+/// - Compact menu pickers (`.pickerStyle(.menu)`) with SF Symbol icons instead of wide segmented rows.
+/// - Native Apple Liquid Glass context menus for single-tap options.
+/// - Clear iconography and grouped hierarchical sections.
 struct SettingsView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dismiss) private var dismiss
@@ -23,8 +25,7 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
-            appearanceSection
-            readingSection
+            displayAndReadingSection
             feedbackToggleSection
             contentUpdatesSection
             automaticSyncSection
@@ -53,58 +54,80 @@ struct SettingsView: View {
         }
     }
 
-    @ViewBuilder
-    private var appearanceSection: some View {
-        Section("Appearance") {
-            Picker("Appearance", selection: $appearance) {
-                ForEach(Appearance.allCases) { mode in
-                    Text(mode.label).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-            .accessibilityLabel("Appearance")
-        }
-    }
+    // MARK: - Display & Reading (Menu Pickers)
 
     @ViewBuilder
-    private var readingSection: some View {
+    private var displayAndReadingSection: some View {
         Section {
-            Picker("Text Size", selection: $textSizeOverride) {
-                ForEach(TextSizeOverride.allCases) { size in
-                    Text(size.label).tag(size)
+            Picker(selection: $appearance) {
+                ForEach(Appearance.allCases) { mode in
+                    Label(mode.label, systemImage: icon(for: mode))
+                        .tag(mode)
                 }
+            } label: {
+                Label("Appearance", systemImage: "circle.lefthalf.filled")
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
+            .accessibilityLabel("Appearance")
+
+            Picker(selection: $textSizeOverride) {
+                ForEach(TextSizeOverride.allCases) { size in
+                    Label(size.label, systemImage: icon(for: size))
+                        .tag(size)
+                }
+            } label: {
+                Label("Text Size", systemImage: "textformat.size")
+            }
+            .pickerStyle(.menu)
+            .accessibilityLabel("Text Size")
         } header: {
-            Text("Reading")
+            Text("Display & Reading")
         } footer: {
             Text("System follows your iOS Settings text size.")
         }
     }
 
+    // MARK: - Interaction Section
+
     @ViewBuilder
     private var feedbackToggleSection: some View {
-        Section("Feedback") {
-            Toggle("Haptic Feedback", isOn: $hapticsEnabled)
+        Section {
+            Toggle(isOn: $hapticsEnabled) {
+                Label("Haptic Feedback", systemImage: "hand.tap")
+            }
+        } header: {
+            Text("Interaction")
         }
     }
+
+    // MARK: - Content Updates Section
 
     @ViewBuilder
     private var contentUpdatesSection: some View {
         Section {
-            TextField("Feed URL", text: $feedURLString)
+            HStack(spacing: 12) {
+                Label("Feed URL", systemImage: "link")
+                    .labelStyle(.iconOnly)
+                    .foregroundStyle(.secondary)
+
+                TextField("Feed URL", text: $feedURLString)
 #if os(iOS)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .keyboardType(.URL)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+                    .keyboardType(.URL)
 #endif
+            }
+
             Button {
                 checkForUpdates()
             } label: {
-                if isChecking {
-                    ProgressView()
-                } else {
-                    Text("Check for Updates")
+                HStack {
+                    Label("Check for Updates", systemImage: "arrow.clockwise")
+                    Spacer()
+                    if isChecking {
+                        ProgressView()
+                            .controlSize(.small)
+                    }
                 }
             }
             .disabled(isChecking || feedURLString.isEmpty)
@@ -120,6 +143,8 @@ struct SettingsView: View {
             Text("New editions published to this feed appear in the app automatically.")
         }
     }
+
+    // MARK: - Automatic Sync Section
 
     @ViewBuilder
     private var automaticSyncSection: some View {
@@ -184,12 +209,13 @@ struct SettingsView: View {
                 manualSync()
             } label: {
                 HStack {
+                    Label(syncService.isSyncing ? "Syncing to Private Gist..." : "Sync Feedback Now",
+                          systemImage: "arrow.triangle.2.circlepath")
+                    Spacer()
                     if syncService.isSyncing {
                         ProgressView()
                             .controlSize(.small)
-                            .padding(.trailing, 4)
                     }
-                    Text(syncService.isSyncing ? "Syncing to Private Gist..." : "Sync Feedback Now")
                 }
             }
             .disabled(syncService.isSyncing || !isTokenConfigured)
@@ -209,20 +235,37 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Feedback Storage Section
+
     @ViewBuilder
     private var feedbackStorageSection: some View {
         Section {
-            LabeledContent("Saved Responses", value: "\(feedbackCount)")
+            LabeledContent {
+                Text("\(feedbackCount)")
+                    .foregroundStyle(.secondary)
+            } label: {
+                Label("Saved Responses", systemImage: "tray.full")
+            }
 
             if feedbackCount > 0 {
-                ShareLink(item: FeedbackStore.feedbackFileURL) {
-                    Label("Export feedback.json", systemImage: "square.and.arrow.up")
-                }
-
-                Button(role: .destructive) {
-                    showingClearFeedbackAlert = true
+                Menu {
+                    ShareLink(item: FeedbackStore.feedbackFileURL) {
+                        Label("Export feedback.json", systemImage: "square.and.arrow.up")
+                    }
+                    Divider()
+                    Button(role: .destructive) {
+                        showingClearFeedbackAlert = true
+                    } label: {
+                        Label("Clear Stored Feedback", systemImage: "trash")
+                    }
                 } label: {
-                    Label("Clear Stored Feedback", systemImage: "trash")
+                    HStack {
+                        Label("Feedback Actions", systemImage: "ellipsis.circle")
+                        Spacer()
+                        Image(systemName: "chevron.up.chevron.down")
+                            .font(.caption2.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
                 }
             }
         } header: {
@@ -232,11 +275,43 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - About Section
+
     @ViewBuilder
     private var aboutSection: some View {
         Section("About") {
-            LabeledContent("Version", value: appVersion)
-            LabeledContent("Designed for", value: "iOS 26 and later")
+            LabeledContent {
+                Text(appVersion)
+                    .foregroundStyle(.secondary)
+            } label: {
+                Label("Version", systemImage: "info.circle")
+            }
+
+            LabeledContent {
+                Text("iOS 26 and later")
+                    .foregroundStyle(.secondary)
+            } label: {
+                Label("Platform", systemImage: "apple.logo")
+            }
+        }
+    }
+
+    // MARK: - Helpers
+
+    private func icon(for appearance: Appearance) -> String {
+        switch appearance {
+        case .system: return "circle.lefthalf.filled"
+        case .light: return "sun.max.fill"
+        case .dark: return "moon.fill"
+        }
+    }
+
+    private func icon(for textSize: TextSizeOverride) -> String {
+        switch textSize {
+        case .system: return "textformat"
+        case .large: return "textformat.size.larger"
+        case .extraLarge: return "text.magnifyingglass"
+        case .accessibility: return "accessibility"
         }
     }
 
