@@ -1,148 +1,211 @@
 import SwiftUI
 import UIKit
 
-/// The app's bottom bar, faithfully inspired by the Apple Music iPhone floating tab bar:
-/// - Distinct floating Liquid Glass capsule housing with specular light refraction and multi-tier ambient shadow.
-/// - Classic Apple Music vertical layout: prominent SF Symbol centered over caption label.
-/// - Vibrant Apple Music coral-red active tint (`#FF2D55`) on selected icon and text.
-/// - Tactile sliding glass lens indicator with `matchedGeometryEffect` and spring physics.
-/// - Evenly distributed columns (`HStack(spacing: 0)`) preventing any overlap.
-/// - Native haptic feedback on tab selection.
+/// A refined floating bottom bar featuring an interactive Apple Glass slider:
+/// - Single floating capsule track anchored cleanly with `safeAreaInset`.
+/// - Interactive glass slider pill that the user can drag horizontally at will or tap to slide.
+/// - Apple Music coral-red active tint (`#FF2D55`) on the selected tab icon and label.
+/// - Clean, balanced columns ensuring zero text or icon overlap.
+/// - Tactile haptic feedback when crossing segments and snapping.
 struct FloatingTabBar: View {
     var topics: [Topic]
     @Binding var selection: UUID
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
     @Environment(\.colorScheme) private var colorScheme
-    @Namespace private var tabNamespace
+
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDragging: Bool = false
+    @State private var lastFeedbackIndex: Int = 0
 
     private static let appleMusicTint = Color(red: 0.99, green: 0.18, blue: 0.33)
 
+    private var selectedIndex: Int {
+        topics.firstIndex(where: { $0.id == selection }) ?? 0
+    }
+
     var body: some View {
-        Group {
-            if topics.count <= 5 {
+        GeometryReader { geometry in
+            let totalWidth = geometry.size.width
+            let count = max(topics.count, 1)
+            let segmentWidth = totalWidth / CGFloat(count)
+            let currentSliderOffset = CGFloat(selectedIndex) * segmentWidth + dragOffset
+
+            ZStack(alignment: .leading) {
+                // Interactive Apple Glass Slider Thumb
+                glassSliderPill(width: segmentWidth, height: geometry.size.height)
+                    .offset(x: currentSliderOffset)
+                    .gesture(
+                        DragGesture(minimumDistance: 0)
+                            .onChanged { value in
+                                isDragging = true
+                                let rawOffset = value.translation.width
+                                // Add rubber-banding at the ends
+                                let minOffset = -CGFloat(selectedIndex) * segmentWidth
+                                let maxOffset = CGFloat(count - 1 - selectedIndex) * segmentWidth
+
+                                if rawOffset < minOffset {
+                                    let excess = rawOffset - minOffset
+                                    dragOffset = minOffset + excess * 0.3
+                                } else if rawOffset > maxOffset {
+                                    let excess = rawOffset - maxOffset
+                                    dragOffset = maxOffset + excess * 0.3
+                                } else {
+                                    dragOffset = rawOffset
+                                }
+
+                                // Check current target index during drag
+                                let tentativeX = CGFloat(selectedIndex) * segmentWidth + dragOffset + segmentWidth / 2
+                                let newIndex = min(max(Int(floor(tentativeX / segmentWidth)), 0), count - 1)
+                                if newIndex != lastFeedbackIndex {
+                                    lastFeedbackIndex = newIndex
+                                    if hapticsEnabled {
+                                        UISelectionFeedbackGenerator().selectionChanged()
+                                    }
+                                }
+                            }
+                            .onEnded { value in
+                                let tentativeX = CGFloat(selectedIndex) * segmentWidth + dragOffset + segmentWidth / 2
+                                let targetIndex = min(max(Int(floor(tentativeX / segmentWidth)), 0), count - 1)
+
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.75)) {
+                                    dragOffset = 0
+                                    isDragging = false
+                                    if targetIndex < topics.count {
+                                        selection = topics[targetIndex].id
+                                    }
+                                }
+
+                                if hapticsEnabled {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                }
+                            }
+                    )
+
+                // Tab items (Icons & Labels)
                 HStack(spacing: 0) {
-                    ForEach(topics) { topic in
-                        tabItem(for: topic)
-                            .frame(maxWidth: .infinity)
+                    ForEach(Array(topics.enumerated()), id: \.element.id) { index, topic in
+                        tabItem(topic: topic, isSelected: selectedIndex == index)
+                            .frame(width: segmentWidth, height: geometry.size.height)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                guard !isDragging else { return }
+                                withAnimation(.spring(response: 0.32, dampingFraction: 0.75)) {
+                                    selection = topic.id
+                                    dragOffset = 0
+                                }
+                                if hapticsEnabled {
+                                    UISelectionFeedbackGenerator().selectionChanged()
+                                }
+                            }
                     }
-                }
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(topics) { topic in
-                            tabItem(for: topic)
-                                .frame(width: 78)
-                        }
-                    }
-                    .padding(.horizontal, 8)
                 }
             }
         }
-        .padding(.vertical, 6)
-        .padding(.horizontal, 6)
+        .frame(height: 58)
+        .padding(4)
         .background {
-            // Apple Music Liquid Glass Capsule
+            // Track Housing
             Capsule()
                 .fill(.ultraThinMaterial)
                 .overlay {
+                    // Subtle recessed track bed
                     Capsule()
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.35))
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.white.opacity(0.40))
                 }
                 .overlay {
-                    // Refractive specular glass border
+                    // Refractive outer specular rim
                     Capsule()
                         .strokeBorder(
                             LinearGradient(
                                 colors: [
-                                    Color.white.opacity(colorScheme == .dark ? 0.45 : 0.85),
-                                    Color.white.opacity(colorScheme == .dark ? 0.15 : 0.35),
-                                    Color.white.opacity(colorScheme == .dark ? 0.05 : 0.10)
+                                    Color.white.opacity(colorScheme == .dark ? 0.40 : 0.80),
+                                    Color.white.opacity(colorScheme == .dark ? 0.12 : 0.25),
+                                    Color.clear
                                 ],
                                 startPoint: .top,
                                 endPoint: .bottom
                             ),
-                            lineWidth: 1.0
+                            lineWidth: 0.8
                         )
                 }
         }
         .clipShape(Capsule())
-        .glassEffect(.regular.interactive(), in: .capsule)
-        // Apple Music floating elevation shadow
+        // Clean ambient elevation shadow
         .shadow(
-            color: Color.black.opacity(colorScheme == .dark ? 0.50 : 0.16),
-            radius: 20,
+            color: Color.black.opacity(colorScheme == .dark ? 0.45 : 0.12),
+            radius: 18,
             x: 0,
-            y: 10
+            y: 8
         )
         .shadow(
-            color: Color.black.opacity(colorScheme == .dark ? 0.30 : 0.06),
-            radius: 5,
+            color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.04),
+            radius: 4,
             x: 0,
             y: 2
         )
-        .padding(.horizontal, 16)
-        .padding(.bottom, 6)
-        .sensoryFeedback(.selection, trigger: selection) { _, _ in hapticsEnabled }
+        .padding(.horizontal, 20)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Topics")
     }
 
+    // MARK: - Glass Slider Pill
+
     @ViewBuilder
-    private func tabItem(for topic: Topic) -> some View {
-        let isSelected = selection == topic.id
-
-        Button {
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.74)) {
-                selection = topic.id
-            }
-        } label: {
-            VStack(spacing: 3) {
-                Image(systemName: iconName(for: topic, isSelected: isSelected))
-                    .font(.system(size: 21, weight: isSelected ? .semibold : .regular))
-                    .symbolRenderingMode(.hierarchical)
-                    .frame(height: 24)
-
-                Text(topic.name)
-                    .font(.system(size: 10.5, weight: isSelected ? .semibold : .medium))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.85)
-            }
-            .foregroundStyle(
-                isSelected
-                    ? Self.appleMusicTint
-                    : (colorScheme == .dark ? Color.white.opacity(0.72) : Color.primary.opacity(0.60))
+    private func glassSliderPill(width: CGFloat, height: CGFloat) -> some View {
+        Capsule()
+            .fill(
+                colorScheme == .dark
+                    ? AnyShapeStyle(Color.white.opacity(isDragging ? 0.22 : 0.16))
+                    : AnyShapeStyle(Color(uiColor: .systemBackground).opacity(isDragging ? 0.98 : 0.92))
             )
-            .padding(.vertical, 6)
-            .padding(.horizontal, 12)
-            .background {
-                if isSelected {
-                    // Apple Music active tab glass pill lens
-                    Capsule()
-                        .fill(
-                            colorScheme == .dark
-                                ? Color.white.opacity(0.12)
-                                : Color.black.opacity(0.06)
-                        )
-                        .overlay {
-                            Capsule()
-                                .strokeBorder(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.white.opacity(colorScheme == .dark ? 0.30 : 0.60),
-                                            Color.white.opacity(colorScheme == .dark ? 0.08 : 0.15)
-                                        ],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    ),
-                                    lineWidth: 0.5
-                                )
-                        }
-                        .matchedGeometryEffect(id: "activeTabLens", in: tabNamespace)
-                }
+            .overlay {
+                // Liquid Glass specular top reflection
+                Capsule()
+                    .strokeBorder(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.50 : 0.85),
+                                Color.white.opacity(colorScheme == .dark ? 0.15 : 0.20),
+                                Color.clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        ),
+                        lineWidth: 0.6
+                    )
             }
-            .contentShape(Capsule())
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.12),
+                radius: isDragging ? 8 : 4,
+                x: 0,
+                y: isDragging ? 4 : 2
+            )
+            .scaleEffect(isDragging ? 1.03 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isDragging)
+            .frame(width: max(width - 4, 10), height: height)
+            .padding(.leading, 2)
+    }
+
+    // MARK: - Tab Item View
+
+    @ViewBuilder
+    private func tabItem(topic: Topic, isSelected: Bool) -> some View {
+        VStack(spacing: 3) {
+            Image(systemName: iconName(for: topic, isSelected: isSelected))
+                .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
+                .symbolRenderingMode(.hierarchical)
+                .frame(height: 22)
+
+            Text(topic.name)
+                .font(.system(size: 11, weight: isSelected ? .semibold : .medium))
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
         }
-        .buttonStyle(TabPressButtonStyle())
+        .foregroundStyle(
+            isSelected
+                ? Self.appleMusicTint
+                : (colorScheme == .dark ? Color.white.opacity(0.70) : Color.primary.opacity(0.60))
+        )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 
@@ -154,14 +217,5 @@ struct FloatingTabBar: View {
             }
         }
         return topic.systemImage
-    }
-}
-
-private struct TabPressButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.93 : 1.0)
-            .opacity(configuration.isPressed ? 0.85 : 1.0)
-            .animation(.spring(response: 0.22, dampingFraction: 0.7), value: configuration.isPressed)
     }
 }

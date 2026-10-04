@@ -2,10 +2,8 @@ import SwiftUI
 import SwiftData
 
 /// App root: shows the selected topic and anchors the floating tab bar
-/// in the bottom safe-area bar, the iOS 26 home for bottom chrome.
-///
-/// Each topic owns its own NavigationStack (never one stack around the
-/// tab content), per Apple's navigation guidance.
+/// using safeAreaInset, ensuring proper content scroll insets without
+/// competing system bar chrome.
 struct RootView: View {
     @Environment(\.modelContext) private var context
     @Environment(\.dynamicTypeSize) private var systemDynamicTypeSize
@@ -49,10 +47,10 @@ struct RootView: View {
             }
         }
         .dynamicTypeSize(textSizeOverride.dynamicTypeSize ?? systemDynamicTypeSize)
-        .safeAreaBar(edge: .bottom) {
+        .safeAreaInset(edge: .bottom) {
             if visibleTopics.count > 1 {
                 FloatingTabBar(topics: visibleTopics, selection: selectionBinding)
-                    .padding(.bottom, 6)
+                    .padding(.bottom, 8)
             }
         }
         .sheet(isPresented: $showingOrganizer) {
