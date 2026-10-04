@@ -28,6 +28,9 @@ struct TopicHomeView: View {
             .toolbarBackground(.hidden, for: .navigationBar)
             .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
             .searchable(text: $searchText, prompt: "Search \(topic.name)")
+            .overlay(alignment: .top) {
+                TopBarFadeOverlay()
+            }
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
@@ -64,43 +67,31 @@ struct TopicHomeView: View {
     }
 }
 
-/// An Apple Music-style progressive scroll edge fade that smoothly dissolves
-/// content and hero images as they scroll into the navigation bar area without any harsh cutoffs.
-struct AppleScrollFadeMask: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .mask {
-                GeometryReader { proxy in
-                    let topInset = proxy.safeAreaInsets.top
-                    let navBarHeight: CGFloat = 44
-                    let fadeBottom = max(topInset + navBarHeight + 16, 116)
-                    let fadeTop = max(topInset - 8, 48)
+/// Smooth progressive fade overlay modeled after Instagram and modern Apple apps.
+/// It seamlessly dissolves scrolling cards and images into the system background
+/// with a continuous, natural gradient that completely avoids hard cutoff lines or material seams.
+struct TopBarFadeOverlay: View {
+    var height: CGFloat = 136
 
-                    VStack(spacing: 0) {
-                        LinearGradient(
-                            stops: [
-                                .init(color: .clear, location: 0.0),
-                                .init(color: .clear, location: fadeTop / fadeBottom),
-                                .init(color: .black, location: 1.0)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-                        .frame(height: fadeBottom)
+    var body: some View {
+        VStack(spacing: 0) {
+            LinearGradient(
+                stops: [
+                    .init(color: Color(uiColor: .systemGroupedBackground), location: 0.0),
+                    .init(color: Color(uiColor: .systemGroupedBackground), location: 0.42),
+                    .init(color: Color(uiColor: .systemGroupedBackground).opacity(0.85), location: 0.65),
+                    .init(color: Color(uiColor: .systemGroupedBackground).opacity(0.35), location: 0.85),
+                    .init(color: Color(uiColor: .systemGroupedBackground).opacity(0.0), location: 1.0)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: height)
 
-                        Rectangle()
-                            .fill(.black)
-                    }
-                    .frame(height: proxy.size.height)
-                }
-                .ignoresSafeArea(edges: .top)
-            }
-    }
-}
-
-extension View {
-    func appleScrollFade() -> some View {
-        modifier(AppleScrollFadeMask())
+            Spacer()
+        }
+        .ignoresSafeArea(edges: .top)
+        .allowsHitTesting(false)
     }
 }
 
@@ -160,7 +151,7 @@ struct EditionView: View {
             .padding(.top, 8)
             .padding(.bottom, 96) // Inset comfortably above floating glass capsule
         }
-        .appleScrollFade()
+        .scrollClipDisabled()
         .background(Color(uiColor: .systemGroupedBackground))
         .refreshable {
             try? await Task.sleep(nanoseconds: 600_000_000)

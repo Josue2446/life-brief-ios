@@ -9,6 +9,19 @@ import SwiftData
 struct LifeBriefApp: App {
     @AppStorage("appearance") private var appearance: Appearance = .system
 
+    init() {
+        // Completely remove default UIKit navigation bar background & hairline separators
+        // so content can seamlessly fade under floating titles and controls without hard cutoffs.
+        let appearance = UINavigationBarAppearance()
+        appearance.configureWithTransparentBackground()
+        appearance.shadowColor = .clear
+        appearance.backgroundColor = .clear
+        appearance.backgroundEffect = nil
+        UINavigationBar.appearance().standardAppearance = appearance
+        UINavigationBar.appearance().scrollEdgeAppearance = appearance
+        UINavigationBar.appearance().compactAppearance = appearance
+    }
+
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([Topic.self, Edition.self, BriefSection.self, StoryItem.self])
         
