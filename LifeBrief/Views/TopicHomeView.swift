@@ -1,80 +1,59 @@
 import SwiftUI
 import SwiftData
 
-/// The primary reading surface for a topic: latest edition, previous editions, and story cards.
+/// Home of one topic: its latest edition, with search, native pull-to-refresh, and clean editorial hierarchy.
 struct TopicHomeView: View {
     @Bindable var topic: Topic
     @Binding var showingOrganizer: Bool
     @Binding var showingSettings: Bool
-
-    @Query private var editions: [Edition]
-    @State private var showingSaved = false
-
-    init(
-        topic: Topic,
-        showingOrganizer: Binding<Bool>,
-        showingSettings: Binding<Bool>
-    ) {
-        self.topic = topic
-        self._showingOrganizer = showingOrganizer
-        self._showingSettings = showingSettings
-
-        let topicID = topic.id
-        _editions = Query(
-            filter: #Predicate<Edition> { edition in
-                edition.topic?.id == topicID
-            },
-            sort: \Edition.date,
-            order: .reverse
-        )
-    }
-
-    private var latestEdition: Edition? {
-        editions.first
-    }
+    @State private var showingSavedStories = false
+    @State private var searchText = ""
 
     var body: some View {
         NavigationStack {
             Group {
-                if let edition = latestEdition {
-                    EditionView(edition: edition)
+                if let edition = topic.latestEdition {
+                    EditionView(edition: edition, searchText: searchText)
                 } else {
                     ContentUnavailableView(
-                        "No Editions Yet",
-                        systemImage: "newspaper",
-                        description: Text("Editions published for \(topic.name) will appear here.")
+                        "\(topic.name) is on its way",
+                        systemImage: topic.systemImage,
+                        description: Text("New briefings will appear here automatically.")
                     )
                 }
             }
+            .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(topic.name)
-            .navigationBarTitleDisplayMode(.large)
+            .toolbarTitleDisplayMode(.large)
+            .searchable(text: $searchText, prompt: "Search \(topic.name)")
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showingOrganizer = true
-                    } label: {
-                        Image(systemName: "square.grid.2x2")
-                    }
-                    .accessibilityLabel("Organize topics")
-                }
-
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
-                        showingSaved = true
+                        showingSavedStories = true
                     } label: {
                         Image(systemName: "bookmark")
                     }
                     .accessibilityLabel("Saved stories")
 
-                    Button {
-                        showingSettings = true
+                    Menu {
+                        Button {
+                            showingOrganizer = true
+                        } label: {
+                            Label("Organize Topics", systemImage: "slider.horizontal.3")
+                        }
+
+                        Button {
+                            showingSettings = true
+                        } label: {
+                            Label("Settings", systemImage: "gearshape")
+                        }
                     } label: {
-                        Image(systemName: "gearshape")
+                        Image(systemName: "ellipsis.circle")
                     }
-                    .accessibilityLabel("Settings")
+                    .accessibilityLabel("More Options")
                 }
             }
-            .sheet(isPresented: $showingSaved) {
+            .sheet(isPresented: $showingSavedStories) {
                 NavigationStack {
                     SavedStoriesView()
                 }
@@ -83,58 +62,89 @@ struct TopicHomeView: View {
     }
 }
 
-/// Renders a single edition's sections vertically with native spacing.
+/// Renders a single edition with clear editorial hierarchy, pull-to-refresh, and smooth scrolling.
 struct EditionView: View {
     @Bindable var edition: Edition
-    @Query private var allItems: [StoryItem]
+    var searchText: String
 
-    init(edition: Edition) {
-        self.edition = edition
-        let editionID = edition.id
-        _allItems = Query(
-            filter: #Predicate<StoryItem> { item in
-                item.section?.edition?.id == editionID
-            },
-            sort: \StoryItem.sortOrder
-        )
+    @Environment(\.modelContext) private var context
+    @AppStorage("feedURLString") private var feedURLString = BriefStore.defaultFeedURLString
+    @AppStorage("hapticsEnabled") private var hapticsEnabled = true
+
+    private struct FilteredSectionResult: Identifiable {
+        var id: UUID { section.id }
+        var section: BriefSection
+        var matchingItems: [StoryItem]
     }
 
-    private var sortedSections: [BriefSection] {
-        edition.sections.sorted { $0.sortOrder < $1.sortOrder }
+    private var filteredResults: [FilteredSectionResult] {
+        let query = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
+        return edition.sortedSections.compactMap { section in
+            let items: [StoryItem]
+            if query.isEmpty {
+                items = section.sortedItems
+            } else {
+                items = section.sortedItems.filter {
+                    $0.headline.localizedCaseInsensitiveContains(query)
+                        || $0.body.localizedCaseInsensitiveContains(query)
+                }
+            }
+            guard !items.isEmpty else { return nil }
+            return FilteredSectionResult(section: section, matchingItems: items)
+        }
+    }
+
+    private var totalStoryCount: Int {
+        edition.sortedSections.reduce(0) { $0 + $1.sortedItems.count }
     }
 
     var body: some View {
         ScrollView {
             LazyVStack(alignment: .leading, spacing: 28) {
-                header
+                if !searchText.isEmpty && filteredResults.isEmpty {
+                    ContentUnavailableView.search(text: searchText)
+                        .padding(.top, 60)
+                } else {
+                    if searchText.isEmpty {
+                        editionHeader
+                    }
 
-                ForEach(sortedSections) { section in
-                    let sectionID = section.id
-                    let sectionItems = allItems.filter { $0.section?.id == sectionID }
-                    SectionView(section: section, items: sectionItems)
+                    ForEach(filteredResults) { result in
+                        SectionView(section: result.section, items: result.matchingItems)
+                    }
                 }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 12)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
             .padding(.bottom, 96) // Inset comfortably above floating glass capsule
         }
         .background(Color(uiColor: .systemGroupedBackground))
+        .refreshable {
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            _ = try? await BriefStore.refreshFeed(from: feedURLString, into: context)
+        }
     }
 
-    private var header: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(edition.dateLabel.uppercased())
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .tracking(0.5)
+    private var editionHeader: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Label(edition.dateLabel, systemImage: "calendar")
+                Text("•")
+                Text("\(totalStoryCount) \(totalStoryCount == 1 ? "story" : "stories")")
+            }
+            .font(.caption.weight(.bold))
+            .foregroundStyle(.secondary)
+            .textCase(.uppercase)
 
             if !edition.theme.isEmpty {
                 Text(edition.theme)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(.primary)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
-        .padding(.top, 4)
+        .padding(.vertical, 4)
         .accessibilityElement(children: .combine)
     }
 }
