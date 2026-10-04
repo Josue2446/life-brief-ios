@@ -31,6 +31,7 @@ struct SettingsView: View {
             feedbackStorageSection
             aboutSection
         }
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .navigationTitle("Settings")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {

@@ -97,6 +97,7 @@ struct SavedStoriesView: View {
                     }
                 }
                 .listStyle(.insetGrouped)
+                .scrollEdgeEffectStyle(.soft, for: .top)
             }
         }
         .navigationTitle("Favorites")
