@@ -1,7 +1,7 @@
 import SwiftUI
 import SwiftData
 
-/// Home of one topic: its latest edition, with search, native pull-to-refresh, and clean editorial hierarchy.
+/// Home of one topic: its latest edition, with native Apple search, pull-to-refresh, and clean editorial hierarchy.
 struct TopicHomeView: View {
     @Bindable var topic: Topic
     @Binding var showingOrganizer: Bool
@@ -9,48 +9,29 @@ struct TopicHomeView: View {
     @State private var showingFavorites = false
     @State private var showingSearch = false
     @State private var searchText = ""
-    @FocusState private var isSearchFocused: Bool
-    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                if showingSearch {
-                    searchBar
-                        .transition(.move(edge: .top).combined(with: .opacity))
-                }
-
-                Group {
-                    if let edition = topic.latestEdition {
-                        EditionView(edition: edition, searchText: searchText)
-                    } else {
-                        ContentUnavailableView(
-                            "\(topic.name) is on its way",
-                            systemImage: topic.systemImage,
-                            description: Text("New briefings will appear here automatically.")
-                        )
-                    }
+            Group {
+                if let edition = topic.latestEdition {
+                    EditionView(edition: edition, searchText: searchText)
+                } else {
+                    ContentUnavailableView(
+                        "\(topic.name) is on its way",
+                        systemImage: topic.systemImage,
+                        description: Text("New briefings will appear here automatically.")
+                    )
                 }
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(topic.name)
-            .toolbarTitleDisplayMode(showingSearch ? .inline : .large)
-            .animation(.spring(response: 0.32, dampingFraction: 0.8), value: showingSearch)
+            .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search \(topic.name)...")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        if showingSearch {
-                            dismissSearch()
-                        } else {
-                            withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
-                                showingSearch = true
-                                isSearchFocused = true
-                            }
-                        }
+                        showingSearch.toggle()
                     } label: {
                         Image(systemName: "magnifyingglass")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(showingSearch ? FloatingTabBar.appleMusicTint : Color.primary)
                     }
                     .accessibilityLabel("Search")
                 }
@@ -87,104 +68,6 @@ struct TopicHomeView: View {
                     SavedStoriesView()
                 }
             }
-        }
-    }
-
-    // MARK: - Apple Liquid Glass Search Bar
-
-    @ViewBuilder
-    private var searchBar: some View {
-        HStack(spacing: 12) {
-            // Liquid Glass Search Input Capsule
-            HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(.secondary)
-
-                TextField("Search \(topic.name)...", text: $searchText)
-                    .textFieldStyle(.plain)
-                    .font(.subheadline)
-                    .focused($isSearchFocused)
-                    .submitLabel(.search)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-
-                if !searchText.isEmpty {
-                    Button {
-                        searchText = ""
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
-                            .font(.system(size: 14))
-                            .foregroundStyle(.secondary)
-                            .padding(4)
-                            .contentShape(Circle())
-                    }
-                    .buttonStyle(.plain)
-                    .simultaneousGesture(
-                        TapGesture().onEnded {
-                            searchText = ""
-                        }
-                    )
-                }
-            }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .glassEffect(.regular.interactive(), in: Capsule())
-            .overlay {
-                Capsule()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [
-                                Color.white.opacity(0.85),
-                                Color.white.opacity(0.20),
-                                Color.clear
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        ),
-                        lineWidth: 0.8
-                    )
-            }
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.08),
-                radius: 8,
-                x: 0,
-                y: 4
-            )
-
-            // Native Apple Style Cancel Button outside the capsule
-            Button {
-                dismissSearch()
-            } label: {
-                Text("Cancel")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(FloatingTabBar.appleMusicTint)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 6)
-                    .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            .simultaneousGesture(
-                TapGesture().onEnded {
-                    dismissSearch()
-                }
-            )
-            .transition(.move(edge: .trailing).combined(with: .opacity))
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 4)
-        .padding(.bottom, 8)
-    }
-
-    // MARK: - Dismiss Search Helper
-
-    private func dismissSearch() {
-        guard showingSearch else { return }
-        isSearchFocused = false
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-        withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) {
-            searchText = ""
-            showingSearch = false
         }
     }
 }
