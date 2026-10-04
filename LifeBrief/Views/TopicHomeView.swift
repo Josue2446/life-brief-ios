@@ -373,9 +373,7 @@ struct SectionView: View {
             case .community:
                 CommunitySectionView(items: items)
             case .summary:
-                BriefCard {
-                    SummarySectionView(items: items)
-                }
+                SummarySectionView(items: items)
             case .overview, .custom:
                 BriefCard {
                     VStack(alignment: .leading, spacing: 14) {

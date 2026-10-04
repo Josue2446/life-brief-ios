@@ -311,33 +311,103 @@ struct CommunityCard: View {
     }
 }
 
-/// Summary takeaways use the standard semantic confirmation symbol.
+/// Summary takeaways presented 2-at-a-time in a horizontal swipeable card carousel.
 struct SummarySectionView: View {
+    var items: [StoryItem]
+    @State private var scrolledPairID: UUID?
+
+    private struct SummaryPair: Identifiable {
+        var id: UUID { items.first?.id ?? UUID() }
+        var items: [StoryItem]
+    }
+
+    private var pairs: [SummaryPair] {
+        stride(from: 0, to: items.count, by: 2).map { index in
+            SummaryPair(items: Array(items[index..<min(index + 2, items.count)]))
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ScrollView(.horizontal, showsIndicators: false) {
+                LazyHStack(alignment: .top, spacing: 14) {
+                    ForEach(pairs) { pair in
+                        SummaryCard(items: pair.items)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .scrollTargetLayout()
+            }
+            .padding(.horizontal, -20)
+            .scrollTargetBehavior(.viewAligned)
+            .scrollPosition(id: $scrolledPairID)
+
+            // Discreet page dots for summary pairs
+            if pairs.count > 1 {
+                HStack(spacing: 6) {
+                    ForEach(pairs) { pair in
+                        let isActive = pair.id == (scrolledPairID ?? pairs.first?.id)
+                        Circle()
+                            .fill(isActive ? Color.primary : Color.secondary.opacity(0.28))
+                            .frame(width: isActive ? 6 : 5, height: isActive ? 6 : 5)
+                            .animation(.spring(response: 0.25, dampingFraction: 0.8), value: scrolledPairID)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                .padding(.top, 2)
+            }
+        }
+        .onAppear {
+            if scrolledPairID == nil {
+                scrolledPairID = pairs.first?.id
+            }
+        }
+    }
+}
+
+/// A card holding 2 summary points stacked vertically.
+struct SummaryCard: View {
     var items: [StoryItem]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            ForEach(items) { item in
-                HStack(alignment: .top, spacing: 12) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .font(.body)
-                        .frame(width: 24)
-                        .padding(.top, 1)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(item.headline)
-                            .font(.subheadline.weight(.semibold))
-
-                        if !item.body.isEmpty {
-                            ExpandableText(
-                                text: item.body,
-                                font: .caption,
-                                foregroundStyle: .secondary,
-                                lineSpacing: 2
-                            )
-                        }
+        BriefCard {
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(Array(items.enumerated()), id: \.element.id) { index, item in
+                    summaryRow(for: item)
+                    if index < items.count - 1 {
+                        Divider()
                     }
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(width: 300)
+    }
+
+    @ViewBuilder
+    private func summaryRow(for item: StoryItem) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundStyle(.secondary)
+                .font(.body)
+                .frame(width: 24)
+                .padding(.top, 1)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.headline)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(4)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if !item.body.isEmpty {
+                    ExpandableText(
+                        text: item.body,
+                        font: .caption,
+                        foregroundStyle: .secondary,
+                        lineSpacing: 2
+                    )
                 }
             }
         }
