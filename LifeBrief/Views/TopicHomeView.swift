@@ -25,11 +25,9 @@ struct TopicHomeView: View {
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(topic.name)
             .toolbarTitleDisplayMode(.large)
+            .toolbarBackground(.hidden, for: .navigationBar)
             .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
             .searchable(text: $searchText, prompt: "Search \(topic.name)")
-            .overlay(alignment: .top) {
-                ProgressiveGlassHeader()
-            }
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
@@ -66,31 +64,43 @@ struct TopicHomeView: View {
     }
 }
 
-/// Variable Apple Glass header overlay that creates a seamless gradient transition
-/// for scrolling images and content without harsh cutoffs or hard separator lines.
-struct ProgressiveGlassHeader: View {
-    @Environment(\.colorScheme) private var colorScheme
-    var height: CGFloat = 120
-
-    var body: some View {
-        Rectangle()
-            .fill(.ultraThinMaterial)
+/// An Apple Music-style progressive scroll edge fade that smoothly dissolves
+/// content and hero images as they scroll into the navigation bar area without any harsh cutoffs.
+struct AppleScrollFadeMask: ViewModifier {
+    func body(content: Content) -> some View {
+        content
             .mask {
-                LinearGradient(
-                    stops: [
-                        .init(color: .black, location: 0.0),
-                        .init(color: .black, location: 0.52),
-                        .init(color: .black.opacity(0.85), location: 0.70),
-                        .init(color: .black.opacity(0.35), location: 0.88),
-                        .init(color: .clear, location: 1.0)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                GeometryReader { proxy in
+                    let topInset = proxy.safeAreaInsets.top
+                    let navBarHeight: CGFloat = 44
+                    let fadeBottom = max(topInset + navBarHeight + 16, 116)
+                    let fadeTop = max(topInset - 8, 48)
+
+                    VStack(spacing: 0) {
+                        LinearGradient(
+                            stops: [
+                                .init(color: .clear, location: 0.0),
+                                .init(color: .clear, location: fadeTop / fadeBottom),
+                                .init(color: .black, location: 1.0)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                        .frame(height: fadeBottom)
+
+                        Rectangle()
+                            .fill(.black)
+                    }
+                    .frame(height: proxy.size.height)
+                }
+                .ignoresSafeArea(edges: .top)
             }
-            .frame(height: height)
-            .ignoresSafeArea(edges: .top)
-            .allowsHitTesting(false)
+    }
+}
+
+extension View {
+    func appleScrollFade() -> some View {
+        modifier(AppleScrollFadeMask())
     }
 }
 
@@ -150,6 +160,7 @@ struct EditionView: View {
             .padding(.top, 8)
             .padding(.bottom, 96) // Inset comfortably above floating glass capsule
         }
+        .appleScrollFade()
         .background(Color(uiColor: .systemGroupedBackground))
         .refreshable {
             try? await Task.sleep(nanoseconds: 600_000_000)

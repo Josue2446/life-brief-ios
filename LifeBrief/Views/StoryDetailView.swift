@@ -117,14 +117,13 @@ struct StoryDetailView: View {
             .padding(.top, 24)
             .padding(.bottom, 100) // Comfortable clearance above the floating tab bar
         }
+        .appleScrollFade()
         .scrollDismissesKeyboard(.interactively)
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(item.sourceName ?? "Story")
         .toolbarTitleDisplayMode(.inline)
+        .toolbarBackground(.hidden, for: .navigationBar)
         .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
-        .overlay(alignment: .top) {
-            ProgressiveGlassHeader()
-        }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
