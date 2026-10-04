@@ -182,5 +182,10 @@ enum FeedbackStore {
 
         guard let data = try? encoder.encode(updatedFeed) else { return }
         try? data.write(to: feedbackFileURL, options: [.atomic])
+
+        // Automatically trigger debounced background sync to GitHub Gist
+        Task { @MainActor in
+            FeedbackSyncService.shared.scheduleDebouncedSync()
+        }
     }
 }
