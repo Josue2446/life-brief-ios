@@ -137,11 +137,12 @@ struct EditionView: View {
             .textCase(.uppercase)
 
             if !edition.theme.isEmpty {
-                Text(edition.theme)
-                    .font(.title3.weight(.medium))
-                    .foregroundStyle(.primary)
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
+                ExpandableText(
+                    text: edition.theme,
+                    font: .title3.weight(.medium),
+                    foregroundStyle: .primary,
+                    lineSpacing: 4
+                )
             }
         }
         .padding(.vertical, 4)
@@ -198,7 +199,6 @@ struct SectionView: View {
                         ForEach(items) { item in
                             ExpandableText(
                                 text: item.body.isEmpty ? item.headline : item.body,
-                                lineLimit: 3,
                                 font: .body,
                                 foregroundStyle: .primary,
                                 lineSpacing: 5
@@ -279,7 +279,6 @@ struct StoryCard: View {
                     if !item.body.isEmpty {
                         ExpandableText(
                             text: item.body,
-                            lineLimit: 2,
                             font: .subheadline,
                             foregroundStyle: .secondary,
                             lineSpacing: 4,

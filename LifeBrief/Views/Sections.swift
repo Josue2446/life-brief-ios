@@ -118,6 +118,16 @@ struct CommunitySectionView: View {
                             .font(.subheadline)
                             .foregroundStyle(.primary)
 
+                        if !item.body.isEmpty {
+                            ExpandableText(
+                                text: item.body,
+                                lineLimit: 2,
+                                font: .subheadline,
+                                foregroundStyle: .secondary,
+                                lineSpacing: 3
+                            )
+                        }
+
                         if let tag = item.tag, !tag.isEmpty {
                             Text(tag)
                                 .font(.caption.weight(.semibold))
@@ -144,9 +154,21 @@ struct SummarySectionView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.secondary)
                         .font(.body)
-                    Text(item.headline)
-                        .font(.subheadline)
-                        .foregroundStyle(.primary)
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.headline)
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+
+                        if !item.body.isEmpty {
+                            ExpandableText(
+                                text: item.body,
+                                lineLimit: 2,
+                                font: .subheadline,
+                                foregroundStyle: .secondary,
+                                lineSpacing: 3
+                            )
+                        }
+                    }
                 }
             }
         }
