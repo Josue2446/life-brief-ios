@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0039D8B63072CFCB002CB4C8 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0039D8B53072CFCB002CB4C8 /* Shaders.metal */; };
+		0039D8B83072CFD6002CB4C8 /* RaindropGlassView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0039D8B73072CFD6002CB4C8 /* RaindropGlassView.swift */; };
 		00FB6DFB30728CAC004308FC /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FB6DFA30728CAC004308FC /* SafariView.swift */; };
 		00FB6DFD30728CB2004308FC /* SavedStoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FB6DFC30728CB2004308FC /* SavedStoriesView.swift */; };
 		00FB6DFF30729EC4004308FC /* FeedbackStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FB6DFE30729EC4004308FC /* FeedbackStore.swift */; };
@@ -32,6 +34,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0039D8B53072CFCB002CB4C8 /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
+		0039D8B73072CFD6002CB4C8 /* RaindropGlassView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaindropGlassView.swift; sourceTree = "<group>"; };
 		00FB6DFA30728CAC004308FC /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 		00FB6DFC30728CB2004308FC /* SavedStoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStoriesView.swift; sourceTree = "<group>"; };
 		00FB6DFE30729EC4004308FC /* FeedbackStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackStore.swift; sourceTree = "<group>"; };
@@ -98,6 +102,7 @@
 			children = (
 				A14FE2F2062E5D7539791E92 /* Assets.xcassets */,
 				9CB95C3DAEE9B8B6AC5A7973 /* SeedData */,
+				0039D8B53072CFCB002CB4C8 /* Shaders.metal */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -115,6 +120,7 @@
 				00FB6DFA30728CAC004308FC /* SafariView.swift */,
 				00FB6DFC30728CB2004308FC /* SavedStoriesView.swift */,
 				00FB6E043072AC1E004308FC /* ExpandableText.swift */,
+				0039D8B73072CFD6002CB4C8 /* RaindropGlassView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -225,9 +231,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				00FB6DFF30729EC4004308FC /* FeedbackStore.swift in Sources */,
+				0039D8B83072CFD6002CB4C8 /* RaindropGlassView.swift in Sources */,
 				B43B226DD9F9E0D47D5984C1 /* LifeBriefApp.swift in Sources */,
 				C328DBE7DB5E2A815BCA6BC0 /* Topic.swift in Sources */,
 				8FF2AA46EAED83AD9B03B946 /* Edition.swift in Sources */,
+				0039D8B63072CFCB002CB4C8 /* Shaders.metal in Sources */,
 				00FB6DFD30728CB2004308FC /* SavedStoriesView.swift in Sources */,
 				1DAC0CC531A3A5E0574D4156 /* BriefSection.swift in Sources */,
 				AEF750E11AC831A72914A01A /* StoryItem.swift in Sources */,

@@ -29,6 +29,7 @@ struct SettingsView: View {
             contentUpdatesSection
             automaticSyncSection
             feedbackStorageSection
+            effectsShowcaseSection
             aboutSection
         }
         .scrollEdgeEffectStyle(.soft, for: .top)
@@ -229,6 +230,19 @@ struct SettingsView: View {
             Text("Feedback Storage")
         } footer: {
             Text("Post reactions and comments are stored locally in feedback.json.")
+        }
+    }
+
+    @ViewBuilder
+    private var effectsShowcaseSection: some View {
+        Section("Liquid Glass Shaders") {
+            NavigationLink {
+                RaindropGlassView()
+                    .navigationTitle("Raindrop Droplet")
+                    .navigationBarTitleDisplayMode(.inline)
+            } label: {
+                Label("3D Glass Water Droplet", systemImage: "drop.fill")
+            }
         }
     }
 
