@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		00FB6DFB30728CAC004308FC /* SafariView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FB6DFA30728CAC004308FC /* SafariView.swift */; };
 		00FB6DFD30728CB2004308FC /* SavedStoriesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FB6DFC30728CB2004308FC /* SavedStoriesView.swift */; };
+		00FB6DFF30729EC4004308FC /* FeedbackStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 00FB6DFE30729EC4004308FC /* FeedbackStore.swift */; };
 		0D6F6943DCC5CA938FC008C2 /* Sections.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC2B10DCB9E88602ADF37249 /* Sections.swift */; };
 		1DAC0CC531A3A5E0574D4156 /* BriefSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A93012FA3120190D123CB26 /* BriefSection.swift */; };
 		30EA259ED8E3BAF3A5496C02 /* portland-2026-10-02.json in Resources */ = {isa = PBXBuildFile; fileRef = 6B24CF7BDEBCA071CAF95D40 /* portland-2026-10-02.json */; };
@@ -30,6 +31,7 @@
 /* Begin PBXFileReference section */
 		00FB6DFA30728CAC004308FC /* SafariView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariView.swift; sourceTree = "<group>"; };
 		00FB6DFC30728CB2004308FC /* SavedStoriesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedStoriesView.swift; sourceTree = "<group>"; };
+		00FB6DFE30729EC4004308FC /* FeedbackStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackStore.swift; sourceTree = "<group>"; };
 		0F65700C505CC62E119726DF /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		17A2BC188B42E8703A3E3766 /* StoryItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoryItem.swift; sourceTree = "<group>"; };
 		207D8EAE199C7EAD8F563193 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
@@ -78,6 +80,7 @@
 			isa = PBXGroup;
 			children = (
 				A0356E59A8ADD2C4D768EBEF /* BriefStore.swift */,
+				00FB6DFE30729EC4004308FC /* FeedbackStore.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -212,6 +215,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				00FB6DFF30729EC4004308FC /* FeedbackStore.swift in Sources */,
 				B43B226DD9F9E0D47D5984C1 /* LifeBriefApp.swift in Sources */,
 				C328DBE7DB5E2A815BCA6BC0 /* Topic.swift in Sources */,
 				8FF2AA46EAED83AD9B03B946 /* Edition.swift in Sources */,

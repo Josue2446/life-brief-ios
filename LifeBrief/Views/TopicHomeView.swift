@@ -258,6 +258,12 @@ struct StoryCard: View {
 
                         Spacer(minLength: 0)
 
+                        if let reaction = item.reaction {
+                            Image(systemName: reaction.filledSystemImage)
+                                .font(.subheadline)
+                                .foregroundStyle(reaction == .like ? Color.accentColor : Color.secondary)
+                        }
+
                         Image(systemName: item.isBookmarked ? "bookmark.fill" : "bookmark")
                             .font(.subheadline)
                             .foregroundStyle(item.isBookmarked ? AnyShapeStyle(.tint) : AnyShapeStyle(.tertiary))
@@ -301,7 +307,29 @@ struct StoryCard: View {
                 )
             }
 
+            Divider()
+
+            Button {
+                toggleReaction(.like)
+            } label: {
+                Label(
+                    item.reaction == .like ? "Remove Helpful Rating" : "Mark as Helpful",
+                    systemImage: item.reaction == .like ? "hand.thumbsup.fill" : "hand.thumbsup"
+                )
+            }
+
+            Button {
+                toggleReaction(.dislike)
+            } label: {
+                Label(
+                    item.reaction == .dislike ? "Remove Not Helpful Rating" : "Mark as Not Helpful",
+                    systemImage: item.reaction == .dislike ? "hand.thumbsdown.fill" : "hand.thumbsdown"
+                )
+            }
+
             if let url = item.sourceLinkURL {
+                Divider()
+
                 Button {
                     UIPasteboard.general.url = url
                 } label: {
@@ -314,6 +342,15 @@ struct StoryCard: View {
             }
         }
         .accessibilityHint("Opens the full story.")
+    }
+
+    private func toggleReaction(_ reaction: ReactionType) {
+        if item.reaction == reaction {
+            item.reaction = nil
+        } else {
+            item.reaction = reaction
+        }
+        FeedbackStore.recordFeedback(for: item, reaction: item.reaction, comment: item.userComment)
     }
 }
 

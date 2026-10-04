@@ -21,6 +21,11 @@ final class StoryItem {
     var isRead: Bool
     var isBookmarked: Bool
 
+    /// User feedback attributes ("like", "dislike", nil)
+    var userReaction: String?
+    /// User comment or note about the story
+    var userComment: String?
+
     var section: BriefSection?
 
     init(
@@ -33,7 +38,9 @@ final class StoryItem {
         imageURL: String? = nil,
         sortOrder: Int = 0,
         isRead: Bool = false,
-        isBookmarked: Bool = false
+        isBookmarked: Bool = false,
+        userReaction: String? = nil,
+        userComment: String? = nil
     ) {
         self.id = id
         self.headline = headline
@@ -45,6 +52,18 @@ final class StoryItem {
         self.sortOrder = sortOrder
         self.isRead = isRead
         self.isBookmarked = isBookmarked
+        self.userReaction = userReaction
+        self.userComment = userComment
+    }
+
+    var reaction: ReactionType? {
+        get {
+            guard let userReaction else { return nil }
+            return ReactionType(rawValue: userReaction)
+        }
+        set {
+            userReaction = newValue?.rawValue
+        }
     }
 
     var sourceLinkURL: URL? {
