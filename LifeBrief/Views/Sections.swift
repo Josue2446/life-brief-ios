@@ -217,13 +217,17 @@ struct EventCard: View {
                 if event.sourceLinkURL != nil {
                     Spacer(minLength: 4)
 
-                    Button("Event details") {
+                    Button {
                         showingSafari = true
+                    } label: {
+                        Text("Event details")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 7)
+                            .background(accentColorTheme.darkerColor, in: .capsule)
                     }
-                    .buttonStyle(.bordered)
-                    .tint(accentColorTheme.color)
-                    .buttonBorderShape(.capsule)
-                    .controlSize(.small)
+                    .buttonStyle(.plain)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
