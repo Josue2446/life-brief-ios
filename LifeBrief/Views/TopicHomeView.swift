@@ -7,6 +7,7 @@ struct TopicHomeView: View {
     @Binding var showingOrganizer: Bool
     @Binding var showingSettings: Bool
     @State private var showingFavorites = false
+    @State private var showingSearch = false
     @State private var searchText = ""
 
     var body: some View {
@@ -25,8 +26,24 @@ struct TopicHomeView: View {
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(topic.name)
             .toolbarTitleDisplayMode(.large)
-            .searchable(text: $searchText, prompt: "Search \(topic.name)")
+            .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search \(topic.name)")
+            .onChange(of: showingSearch) { _, isPresented in
+                if !isPresented {
+                    searchText = ""
+                }
+            }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingSearch.toggle()
+                        }
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                    }
+                    .accessibilityLabel("Search")
+                }
+
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
                         showingFavorites = true
