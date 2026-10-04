@@ -9,47 +9,52 @@ struct TopicHomeView: View {
     @State private var showingFavorites = false
     @State private var searchText = ""
     @State private var isScrolled = false
-    @State private var scrollToTopTrigger = 0
-    @FocusState private var isSearchFocused: Bool
+    @State private var showingInPlaceSearch = false
+    @FocusState private var isInPlaceSearchFocused: Bool
 
     var body: some View {
         NavigationStack {
-            Group {
-                if let edition = topic.latestEdition {
-                    EditionView(
-                        edition: edition,
-                        searchText: searchText,
-                        isScrolled: $isScrolled,
-                        scrollToTopTrigger: scrollToTopTrigger
-                    )
-                } else {
-                    ContentUnavailableView(
-                        "\(topic.name) is on its way",
-                        systemImage: topic.systemImage,
-                        description: Text("New briefings will appear here automatically.")
-                    )
+            VStack(spacing: 0) {
+                if showingInPlaceSearch {
+                    inPlaceSearchBar
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                }
+
+                Group {
+                    if let edition = topic.latestEdition {
+                        EditionView(
+                            edition: edition,
+                            searchText: $searchText,
+                            isScrolled: $isScrolled,
+                            showingInPlaceSearch: showingInPlaceSearch
+                        )
+                    } else {
+                        ContentUnavailableView(
+                            "\(topic.name) is on its way",
+                            systemImage: topic.systemImage,
+                            description: Text("New briefings will appear here automatically.")
+                        )
+                    }
                 }
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(topic.name)
-            .searchable(
-                text: $searchText,
-                placement: .navigationBarDrawer(displayMode: .automatic),
-                prompt: "Search \(topic.name)..."
-            )
-            .searchFocused($isSearchFocused)
             .toolbar {
                 if isScrolled {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {
-                            scrollToTopTrigger += 1
-                            Task { @MainActor in
-                                try? await Task.sleep(nanoseconds: 180_000_000)
-                                isSearchFocused = true
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                                showingInPlaceSearch.toggle()
+                                if showingInPlaceSearch {
+                                    isInPlaceSearchFocused = true
+                                } else {
+                                    isInPlaceSearchFocused = false
+                                }
                             }
                         } label: {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(showingInPlaceSearch ? FloatingTabBar.appleMusicTint : Color.primary)
                         }
                         .accessibilityLabel("Search")
                         .transition(.scale(scale: 0.8).combined(with: .opacity))
@@ -84,6 +89,7 @@ struct TopicHomeView: View {
                 }
             }
             .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isScrolled)
+            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: showingInPlaceSearch)
             .sheet(isPresented: $showingFavorites) {
                 NavigationStack {
                     SavedStoriesView()
@@ -91,14 +97,79 @@ struct TopicHomeView: View {
             }
         }
     }
+
+    // MARK: - In-Place Search Bar (Shown when tapped while scrolled)
+
+    private var inPlaceSearchBar: some View {
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundStyle(.secondary)
+
+                TextField("Search \(topic.name)...", text: $searchText)
+                    .font(.subheadline)
+                    .focused($isInPlaceSearchFocused)
+                    .submitLabel(.search)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 15))
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .background(Color(uiColor: .secondarySystemFill), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+
+            Button {
+                dismissInPlaceSearch()
+            } label: {
+                Text("Cancel")
+                    .font(.subheadline)
+                    .foregroundStyle(FloatingTabBar.appleMusicTint)
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 4)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .simultaneousGesture(
+                TapGesture().onEnded {
+                    dismissInPlaceSearch()
+                }
+            )
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .background(.bar)
+        .overlay(alignment: .bottom) {
+            Divider()
+        }
+    }
+
+    private func dismissInPlaceSearch() {
+        isInPlaceSearchFocused = false
+        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+            showingInPlaceSearch = false
+            searchText = ""
+        }
+    }
 }
 
 /// Renders a single edition with clear editorial hierarchy, pull-to-refresh, and smooth scrolling.
 struct EditionView: View {
     @Bindable var edition: Edition
-    var searchText: String
+    @Binding var searchText: String
     @Binding var isScrolled: Bool
-    var scrollToTopTrigger: Int
+    var showingInPlaceSearch: Bool
 
     @Environment(\.modelContext) private var context
     @AppStorage("feedURLString") private var feedURLString = BriefStore.defaultFeedURLString
@@ -132,11 +203,12 @@ struct EditionView: View {
     }
 
     var body: some View {
-        ScrollViewReader { proxy in
-            ScrollView {
-                Color.clear
-                    .frame(height: 0)
-                    .id("edition-top")
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                // Resting Apple search bar at top of feed (hidden when in-place search is active)
+                if !showingInPlaceSearch {
+                    restingSearchBar
+                }
 
                 LazyVStack(alignment: .leading, spacing: 28) {
                     if !searchText.isEmpty && filteredResults.isEmpty {
@@ -152,32 +224,58 @@ struct EditionView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 96) // Inset comfortably above floating glass capsule
             }
-            .onScrollGeometryChange(for: Bool.self, of: { geometry in
-                geometry.contentOffset.y > 45
-            }) { oldValue, newValue in
-                if oldValue != newValue {
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
-                        isScrolled = newValue
+            .padding(.horizontal, 20)
+            .padding(.top, 4)
+            .padding(.bottom, 96) // Inset comfortably above floating glass capsule
+        }
+        .onScrollGeometryChange(for: Bool.self, of: { geometry in
+            geometry.contentOffset.y > 45
+        }) { oldValue, newValue in
+            if oldValue != newValue {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                    isScrolled = newValue
+                    if !newValue && showingInPlaceSearch {
+                        // Returned to top
                     }
                 }
             }
-            .onChange(of: scrollToTopTrigger) {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                    proxy.scrollTo("edition-top", anchor: .top)
+        }
+        .scrollDismissesKeyboard(.interactively)
+        .scrollEdgeEffectStyle(.soft, for: .top)
+        .background(Color(uiColor: .systemGroupedBackground))
+        .refreshable {
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            _ = try? await BriefStore.refreshFeed(from: feedURLString, into: context)
+        }
+    }
+
+    private var restingSearchBar: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(.secondary)
+
+            TextField("Search \(edition.topic?.name ?? "stories")...", text: $searchText)
+                .font(.subheadline)
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+
+            if !searchText.isEmpty {
+                Button {
+                    searchText = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.secondary)
                 }
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .scrollEdgeEffectStyle(.soft, for: .top)
-            .background(Color(uiColor: .systemGroupedBackground))
-            .refreshable {
-                try? await Task.sleep(nanoseconds: 600_000_000)
-                _ = try? await BriefStore.refreshFeed(from: feedURLString, into: context)
+                .buttonStyle(.plain)
             }
         }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color(uiColor: .secondarySystemFill), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
     }
 
     private var editionHeader: some View {
