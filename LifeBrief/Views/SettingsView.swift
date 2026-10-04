@@ -1,58 +1,6 @@
 import SwiftUI
 import SwiftData
 
-/// Curated accent colors matching Apple HIG and user theme preferences.
-enum AccentColorTheme: String, CaseIterable, Identifiable {
-    case multicolor
-    case blue
-    case purple
-    case pink
-    case red
-    case orange
-    case yellow
-    case green
-    case graphite
-
-    var id: String { rawValue }
-
-    var displayName: String {
-        switch self {
-        case .multicolor: return "Rainbow"
-        case .blue: return "Blue"
-        case .purple: return "Purple"
-        case .pink: return "Pink"
-        case .red: return "Coral"
-        case .orange: return "Orange"
-        case .yellow: return "Yellow"
-        case .green: return "Green"
-        case .graphite: return "Graphite"
-        }
-    }
-
-    var color: Color {
-        switch self {
-        case .multicolor:
-            return Color(red: 1.0, green: 0.176, blue: 0.333)
-        case .blue:
-            return Color(red: 0.0, green: 0.478, blue: 1.0)
-        case .purple:
-            return Color(red: 0.686, green: 0.322, blue: 0.871)
-        case .pink:
-            return Color(red: 1.0, green: 0.176, blue: 0.333)
-        case .red:
-            return Color(red: 1.0, green: 0.231, blue: 0.188)
-        case .orange:
-            return Color(red: 1.0, green: 0.584, blue: 0.0)
-        case .yellow:
-            return Color(red: 1.0, green: 0.8, blue: 0.0)
-        case .green:
-            return Color(red: 0.204, green: 0.780, blue: 0.349)
-        case .graphite:
-            return Color(red: 0.557, green: 0.557, blue: 0.576)
-        }
-    }
-}
-
 /// Settings, crafted using modern Apple Human Interface Guidelines:
 /// - Compact menu pickers (`.pickerStyle(.menu)`) with SF Symbol icons instead of wide segmented rows.
 /// - Native Apple Liquid Glass context menus for single-tap options.

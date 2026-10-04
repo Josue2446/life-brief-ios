@@ -7,6 +7,7 @@ struct TopicHomeView: View {
     @Binding var showingOrganizer: Bool
     @Binding var organizerTab: OrganizerTab
     @Binding var showingSettings: Bool
+    @AppStorage("accentColorTheme") private var accentColorTheme: AccentColorTheme = .pink
     @State private var showingFavorites = false
     @State private var searchText = ""
     @State private var isScrolled = false
@@ -56,7 +57,7 @@ struct TopicHomeView: View {
                         } label: {
                             Image(systemName: "magnifyingglass")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(showingInPlaceSearch ? FloatingTabBar.appleMusicTint : Color.primary)
+                                .foregroundStyle(showingInPlaceSearch ? accentColorTheme.color : Color.primary)
                         }
                         .accessibilityLabel("Search")
                         .transition(.scale(scale: 0.8).combined(with: .opacity))

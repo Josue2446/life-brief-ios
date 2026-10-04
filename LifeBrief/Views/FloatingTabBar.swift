@@ -6,12 +6,13 @@ import UIKit
 /// - Built using Apple's official `glassEffect` API with `.regular.interactive()` and custom tinting.
 /// - Exact optical baseline alignment for all topic icons and text labels.
 /// - Dynamic label highlighting as the glass thumb is dragged across topics.
-/// - Apple Music coral-red active tint (`#FF2D55`) on the selected tab.
+/// - Themed active tint on the selected tab inside the slider.
 /// - Tactile haptic feedback when crossing segments and snapping into place.
 struct FloatingTabBar: View {
     var topics: [Topic]
     @Binding var selection: UUID
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
+    @AppStorage("accentColorTheme") private var accentColorTheme: AccentColorTheme = .pink
     @Environment(\.colorScheme) private var colorScheme
 
     @State private var sliderOffset: CGFloat = 0
@@ -185,7 +186,7 @@ struct FloatingTabBar: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
         .foregroundStyle(
             isSelected
-                ? Self.appleMusicTint
+                ? accentColorTheme.color
                 : (colorScheme == .dark ? Color.white.opacity(0.70) : Color.primary.opacity(0.60))
         )
         .accessibilityAddTraits(isSelected ? .isSelected : [])
