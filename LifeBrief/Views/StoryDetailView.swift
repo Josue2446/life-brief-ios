@@ -4,7 +4,12 @@ import SwiftUI
 struct StoryDetailView: View {
     @Bindable var item: StoryItem
     @Environment(\.openURL) private var openURL
+    @AppStorage("hapticsEnabled") private var hapticsEnabled = true
+
     @State private var showingSafari = false
+    @State private var commentText: String = ""
+    @State private var feedbackStatusMessage: String?
+    @FocusState private var isCommentFocused: Bool
 
     var body: some View {
         ScrollView {
@@ -77,11 +82,15 @@ struct StoryDetailView: View {
                     }
                     .padding(.top, 12)
                 }
+
+                feedbackSection
             }
             .frame(maxWidth: 680, alignment: .leading)
             .padding(.horizontal, 20)
-            .padding(.vertical, 24)
+            .padding(.top, 24)
+            .padding(.bottom, 100) // Comfortable clearance above the floating tab bar
         }
+        .scrollDismissesKeyboard(.interactively)
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(item.sourceName ?? "Story")
         .toolbarTitleDisplayMode(.inline)
@@ -109,6 +118,10 @@ struct StoryDetailView: View {
         }
         .onAppear {
             item.isRead = true
+            commentText = item.userComment ?? ""
+            if item.userReaction != nil || item.userComment != nil {
+                feedbackStatusMessage = "Feedback saved"
+            }
         }
     }
 
@@ -137,6 +150,114 @@ struct StoryDetailView: View {
                 .textSelection(.enabled)
         }
         .accessibilityElement(children: .combine)
+    }
+
+    private var feedbackSection: some View {
+        BriefCard {
+            VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Label("Story Feedback", systemImage: "bubble.left.and.exclamationmark.bubble.right")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+
+                    Text("Help shape upcoming briefings. Saved to feedback.json.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+
+                // Apple HIG reaction buttons: high contrast in both dark and light modes
+                HStack(spacing: 12) {
+                    reactionButton(type: .like)
+                    reactionButton(type: .dislike)
+                }
+
+                // Notes & Comments input
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Notes & Comments")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+
+                    TextField("Add comments or insights about this story...", text: $commentText, axis: .vertical)
+                        .lineLimit(3...5)
+                        .focused($isCommentFocused)
+                        .padding(14)
+                        .background(Color(uiColor: .tertiarySystemGroupedBackground), in: .rect(cornerRadius: 14, style: .continuous))
+                        .overlay {
+                            RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                .strokeBorder(Color(uiColor: .separator).opacity(0.18), lineWidth: 0.5)
+                        }
+                }
+
+                // Modern Apple-style submit button
+                Button {
+                    isCommentFocused = false
+                    saveFeedback()
+                } label: {
+                    HStack {
+                        Spacer()
+                        Label(
+                            feedbackStatusMessage != nil ? (feedbackStatusMessage ?? "Feedback Saved") : "Submit Feedback",
+                            systemImage: feedbackStatusMessage != nil ? "checkmark.circle.fill" : "arrow.up.circle.fill"
+                        )
+                        .font(.subheadline.weight(.semibold))
+                        Spacer()
+                    }
+                    .padding(.vertical, 12)
+                }
+                .buttonStyle(.borderedProminent)
+                .buttonBorderShape(.capsule)
+                .tint(Color(uiColor: .label))
+                .foregroundStyle(Color(uiColor: .systemBackground))
+            }
+        }
+        .padding(.top, 8)
+    }
+
+    @ViewBuilder
+    private func reactionButton(type: ReactionType) -> some View {
+        let isSelected = item.reaction == type
+        Button {
+            toggleReaction(type)
+        } label: {
+            HStack(spacing: 8) {
+                Image(systemName: isSelected ? type.filledSystemImage : type.systemImage)
+                    .font(.subheadline.weight(.semibold))
+                Text(type.title)
+                    .font(.subheadline.weight(.medium))
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .foregroundStyle(Color.primary)
+            .background(
+                isSelected ? Color(uiColor: .secondarySystemFill) : Color(uiColor: .tertiarySystemGroupedBackground),
+                in: .rect(cornerRadius: 14, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(isSelected ? Color(uiColor: .label) : Color(uiColor: .separator).opacity(0.2), lineWidth: isSelected ? 1.5 : 0.5)
+            }
+        }
+        .buttonStyle(.plain)
+        .sensoryFeedback(.selection, trigger: item.reaction) { _, _ in hapticsEnabled }
+        .accessibilityLabel(isSelected ? "Remove \(type.title.lowercased()) rating" : "Mark as \(type.title.lowercased())")
+    }
+
+    private func toggleReaction(_ reaction: ReactionType) {
+        if item.reaction == reaction {
+            item.reaction = nil
+            saveFeedback(status: "Rating cleared")
+        } else {
+            item.reaction = reaction
+            saveFeedback(status: "\(reaction.title) recorded")
+        }
+    }
+
+    private func saveFeedback(status: String = "Feedback saved") {
+        let trimmed = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
+        item.userComment = trimmed.isEmpty ? nil : trimmed
+        FeedbackStore.recordFeedback(for: item, reaction: item.reaction, comment: item.userComment)
+        feedbackStatusMessage = status
     }
 
     private var shareText: String {

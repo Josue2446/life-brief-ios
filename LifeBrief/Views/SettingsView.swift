@@ -14,6 +14,8 @@ struct SettingsView: View {
 
     @State private var updateStatus: String?
     @State private var isChecking = false
+    @State private var feedbackCount: Int = FeedbackStore.loadFeed().entriesCount
+    @State private var showingClearFeedbackAlert = false
 
     var body: some View {
         Form {
@@ -72,6 +74,26 @@ struct SettingsView: View {
                 Text("New editions published to this feed appear in the app automatically.")
             }
 
+            Section {
+                LabeledContent("Saved Responses", value: "\(feedbackCount)")
+
+                if feedbackCount > 0 {
+                    ShareLink(item: FeedbackStore.feedbackFileURL) {
+                        Label("Export feedback.json", systemImage: "square.and.arrow.up")
+                    }
+
+                    Button(role: .destructive) {
+                        showingClearFeedbackAlert = true
+                    } label: {
+                        Label("Clear Stored Feedback", systemImage: "trash")
+                    }
+                }
+            } header: {
+                Text("Feedback Storage")
+            } footer: {
+                Text("Post reactions and comments are stored in feedback.json.")
+            }
+
             Section("About") {
                 LabeledContent("Version", value: appVersion)
                 LabeledContent("Designed for", value: "iOS 26 and later")
@@ -82,6 +104,18 @@ struct SettingsView: View {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }
             }
+        }
+        .alert("Clear Feedback?", isPresented: $showingClearFeedbackAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Clear All", role: .destructive) {
+                FeedbackStore.clearAllFeedback()
+                feedbackCount = 0
+            }
+        } message: {
+            Text("This will remove all saved reactions and comments from feedback.json.")
+        }
+        .onAppear {
+            feedbackCount = FeedbackStore.loadFeed().entriesCount
         }
     }
 
