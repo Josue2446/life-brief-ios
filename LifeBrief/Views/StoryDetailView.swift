@@ -38,21 +38,6 @@ struct StoryDetailView: View {
                                 .frame(maxHeight: 280)
                                 .clipped()
                                 .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
-                                        .strokeBorder(
-                                            LinearGradient(
-                                                colors: [
-                                                    Color.white.opacity(0.2),
-                                                    Color.white.opacity(0.04),
-                                                    Color.clear
-                                                ],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            ),
-                                            lineWidth: 0.5
-                                        )
-                                }
                         case .failure:
                             EmptyView()
                         case .empty:
@@ -212,22 +197,10 @@ struct StoryDetailView: View {
                     TextField("Add comments or insights about this story...", text: $commentText, axis: .vertical)
                         .lineLimit(3...5)
                         .focused($isCommentFocused)
-                        .padding(14)
-                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 14, style: .continuous))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(
-                                    LinearGradient(
-                                        colors: [Color.white.opacity(0.18), Color.white.opacity(0.05), Color.clear],
-                                        startPoint: .top,
-                                        endPoint: .bottom
-                                    ),
-                                    lineWidth: 0.5
-                                )
-                        }
+                        .padding(12)
+                        .background(Color(uiColor: .tertiarySystemFill), in: .rect(cornerRadius: 12, style: .continuous))
                 }
 
-                // Modern Apple-style submit button
                 Button {
                     isCommentFocused = false
                     saveFeedback()
@@ -241,12 +214,10 @@ struct StoryDetailView: View {
                         .font(.subheadline.weight(.semibold))
                         Spacer()
                     }
-                    .padding(.vertical, 12)
                 }
                 .buttonStyle(.borderedProminent)
                 .buttonBorderShape(.capsule)
-                .tint(Color(uiColor: .label))
-                .foregroundStyle(Color(uiColor: .systemBackground))
+                .controlSize(.large)
             }
         }
         .padding(.top, 8)
@@ -255,34 +226,43 @@ struct StoryDetailView: View {
     @ViewBuilder
     private func reactionButton(type: ReactionType) -> some View {
         let isSelected = item.reaction == type
-        Button {
-            toggleReaction(type)
-        } label: {
-            HStack(spacing: 8) {
-                Image(systemName: isSelected ? type.filledSystemImage : type.systemImage)
-                    .font(.subheadline.weight(.semibold))
-                Text(type.title)
-                    .font(.subheadline.weight(.medium))
+        if isSelected {
+            Button {
+                toggleReaction(type)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: type.filledSystemImage)
+                        .font(.subheadline.weight(.semibold))
+                    Text(type.title)
+                        .font(.subheadline.weight(.medium))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .foregroundStyle(Color.primary)
-            .background(
-                isSelected ? Color(uiColor: .secondarySystemFill) : Color.clear,
-                in: .rect(cornerRadius: 14, style: .continuous)
-            )
-            .background(.ultraThinMaterial, in: .rect(cornerRadius: 14, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(
-                        isSelected ? LinearGradient(colors: [Color.primary.opacity(0.8), Color.primary.opacity(0.5)], startPoint: .top, endPoint: .bottom) : LinearGradient(colors: [Color.white.opacity(0.2), Color.white.opacity(0.05), Color.clear], startPoint: .top, endPoint: .bottom),
-                        lineWidth: isSelected ? 1.5 : 0.6
-                    )
+            .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.roundedRectangle(radius: 12))
+            .controlSize(.regular)
+            .sensoryFeedback(.selection, trigger: item.reaction) { _, _ in hapticsEnabled }
+            .accessibilityLabel("Remove \(type.title.lowercased()) rating")
+        } else {
+            Button {
+                toggleReaction(type)
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: type.systemImage)
+                        .font(.subheadline.weight(.semibold))
+                    Text(type.title)
+                        .font(.subheadline.weight(.medium))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 4)
             }
+            .buttonStyle(.bordered)
+            .buttonBorderShape(.roundedRectangle(radius: 12))
+            .controlSize(.regular)
+            .sensoryFeedback(.selection, trigger: item.reaction) { _, _ in hapticsEnabled }
+            .accessibilityLabel("Mark as \(type.title.lowercased())")
         }
-        .buttonStyle(.plain)
-        .sensoryFeedback(.selection, trigger: item.reaction) { _, _ in hapticsEnabled }
-        .accessibilityLabel(isSelected ? "Remove \(type.title.lowercased()) rating" : "Mark as \(type.title.lowercased())")
     }
 
     private func toggleReaction(_ reaction: ReactionType) {

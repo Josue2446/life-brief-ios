@@ -10,7 +10,6 @@ struct SafariView: UIViewControllerRepresentable {
         let config = SFSafariViewController.Configuration()
         config.entersReaderIfAvailable = true
         let safariVC = SFSafariViewController(url: url, configuration: config)
-        safariVC.preferredControlTintColor = .tintColor
         safariVC.dismissButtonStyle = .done
         return safariVC
     }

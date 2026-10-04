@@ -80,21 +80,12 @@ struct EventRow: View {
                 }
 
                 if event.sourceLinkURL != nil {
-                    Button {
+                    Button("Event details") {
                         showingSafari = true
-                    } label: {
-                        Text("Event details")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 9)
-                            .padding(.vertical, 3)
-                            .background(.ultraThinMaterial, in: .capsule)
-                            .overlay {
-                                Capsule()
-                                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
-                            }
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(.bordered)
+                    .buttonBorderShape(.capsule)
+                    .controlSize(.small)
                     .padding(.top, 4)
                 }
             }
@@ -136,18 +127,7 @@ struct CommunitySectionView: View {
                                 .foregroundStyle(.secondary)
                                 .padding(.horizontal, 10)
                                 .padding(.vertical, 4)
-                                .background(.ultraThinMaterial, in: .capsule)
-                                .overlay {
-                                    Capsule()
-                                        .strokeBorder(
-                                            LinearGradient(
-                                                colors: [Color.white.opacity(0.25), Color.white.opacity(0.06), Color.clear],
-                                                startPoint: .top,
-                                                endPoint: .bottom
-                                            ),
-                                            lineWidth: 0.5
-                                        )
-                                }
+                                .background(Color(uiColor: .secondarySystemFill), in: .capsule)
                         }
                     }
                 }

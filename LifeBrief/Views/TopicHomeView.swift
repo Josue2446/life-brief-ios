@@ -151,40 +151,15 @@ struct EditionView: View {
     }
 }
 
-/// An Apple Glass reading surface with frosted translucency, subtle specular rim highlight, and soft ambient depth.
+/// An Apple Glass reading surface with native material backdrop and continuous rounded corner styling.
 struct BriefCard<Content: View>: View {
-    @Environment(\.colorScheme) private var colorScheme
     @ViewBuilder var content: Content
 
     var body: some View {
         content
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .fill(.ultraThinMaterial)
-            }
-            .overlay {
-                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                    .strokeBorder(
-                        LinearGradient(
-                            stops: [
-                                .init(color: .white.opacity(colorScheme == .dark ? 0.22 : 0.45), location: 0),
-                                .init(color: .white.opacity(colorScheme == .dark ? 0.06 : 0.15), location: 0.35),
-                                .init(color: Color.clear, location: 0.8)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 0.6
-                    )
-            }
-            .shadow(
-                color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.04),
-                radius: 12,
-                x: 0,
-                y: 4
-            )
+            .background(.ultraThinMaterial, in: .rect(cornerRadius: 20, style: .continuous))
     }
 }
 
@@ -256,21 +231,6 @@ struct StoryCard: View {
                                     .frame(height: 180)
                                     .clipped()
                                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                                    .overlay {
-                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                            .strokeBorder(
-                                                LinearGradient(
-                                                    colors: [
-                                                        Color.white.opacity(0.2),
-                                                        Color.white.opacity(0.04),
-                                                        Color.clear
-                                                    ],
-                                                    startPoint: .top,
-                                                    endPoint: .bottom
-                                                ),
-                                                lineWidth: 0.5
-                                            )
-                                    }
                             case .failure:
                                 EmptyView()
                             case .empty:
