@@ -1,15 +1,26 @@
 import SwiftUI
+import SwiftData
 
-/// Full story reader with focused typography, Safari Reader integration, and standard iOS actions.
+/// Full-screen detail view for a story item: large hero, full editorial body,
+/// external link launch, and seamless feedback collection directly saved to feedback.json.
 struct StoryDetailView: View {
     @Bindable var item: StoryItem
+
     @Environment(\.openURL) private var openURL
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
 
-    @State private var showingSafari = false
     @State private var commentText: String = ""
     @State private var feedbackStatusMessage: String?
+    @State private var showingSafari = false
     @FocusState private var isCommentFocused: Bool
+
+    private var shareText: String {
+        var text = "\(item.headline)\n\n\(item.body)"
+        if let url = item.sourceLinkURL {
+            text += "\n\nRead more: \(url.absoluteString)"
+        }
+        return text
+    }
 
     var body: some View {
         ScrollView {
@@ -26,11 +37,26 @@ struct StoryDetailView: View {
                                 .frame(maxWidth: .infinity)
                                 .frame(maxHeight: 280)
                                 .clipped()
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 18, style: .continuous)
+                                        .strokeBorder(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color.white.opacity(0.2),
+                                                    Color.white.opacity(0.04),
+                                                    Color.clear
+                                                ],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            ),
+                                            lineWidth: 0.5
+                                        )
+                                }
                         case .failure:
                             EmptyView()
                         case .empty:
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            RoundedRectangle(cornerRadius: 18, style: .continuous)
                                 .fill(Color(uiColor: .tertiarySystemFill))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 220)
@@ -95,6 +121,10 @@ struct StoryDetailView: View {
         .background(Color(uiColor: .systemGroupedBackground))
         .navigationTitle(item.sourceName ?? "Story")
         .toolbarTitleDisplayMode(.inline)
+        .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
+        .overlay(alignment: .top) {
+            ProgressiveGlassHeader()
+        }
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
                 Button {
@@ -120,17 +150,14 @@ struct StoryDetailView: View {
         .onAppear {
             item.isRead = true
             commentText = item.userComment ?? ""
-            if item.userReaction != nil || item.userComment != nil {
-                feedbackStatusMessage = "Feedback saved"
-            }
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                if let sourceName = item.sourceName {
-                    Label(sourceName, systemImage: "newspaper")
+                if let source = item.sourceName {
+                    Text(source)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
@@ -146,36 +173,42 @@ struct StoryDetailView: View {
             }
 
             Text(item.headline)
-                .font(.title.weight(.bold))
+                .font(.title2.weight(.bold))
                 .foregroundStyle(.primary)
                 .textSelection(.enabled)
         }
-        .accessibilityElement(children: .combine)
     }
 
     private var feedbackSection: some View {
         BriefCard {
-            VStack(alignment: .leading, spacing: 18) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Label("Story Feedback", systemImage: "bubble.left.and.exclamationmark.bubble.right")
-                        .font(.headline)
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Label("Your Feedback", systemImage: "sparkles")
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.primary)
 
-                    Text("Help shape upcoming briefings. Saved to feedback.json.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    Spacer()
+
+                    if let status = feedbackStatusMessage {
+                        Text(status)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .transition(.opacity)
+                    }
                 }
 
-                // Apple HIG reaction buttons: high contrast in both dark and light modes
+                Text("Help calibrate your future briefing summaries with quick feedback.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+
                 HStack(spacing: 12) {
                     reactionButton(type: .like)
                     reactionButton(type: .dislike)
                 }
 
-                // Notes & Comments input
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Notes & Comments")
-                        .font(.caption.weight(.bold))
+                    Text("Editorial Notes")
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(.secondary)
                         .textCase(.uppercase)
 
@@ -183,10 +216,17 @@ struct StoryDetailView: View {
                         .lineLimit(3...5)
                         .focused($isCommentFocused)
                         .padding(14)
-                        .background(Color(uiColor: .tertiarySystemGroupedBackground), in: .rect(cornerRadius: 14, style: .continuous))
+                        .background(.ultraThinMaterial, in: .rect(cornerRadius: 14, style: .continuous))
                         .overlay {
                             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                                .strokeBorder(Color(uiColor: .separator).opacity(0.18), lineWidth: 0.5)
+                                .strokeBorder(
+                                    LinearGradient(
+                                        colors: [Color.white.opacity(0.18), Color.white.opacity(0.05), Color.clear],
+                                        startPoint: .top,
+                                        endPoint: .bottom
+                                    ),
+                                    lineWidth: 0.5
+                                )
                         }
                 }
 
@@ -231,12 +271,16 @@ struct StoryDetailView: View {
             .padding(.vertical, 12)
             .foregroundStyle(Color.primary)
             .background(
-                isSelected ? Color(uiColor: .secondarySystemFill) : Color(uiColor: .tertiarySystemGroupedBackground),
+                isSelected ? Color(uiColor: .secondarySystemFill) : Color.clear,
                 in: .rect(cornerRadius: 14, style: .continuous)
             )
+            .background(.ultraThinMaterial, in: .rect(cornerRadius: 14, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .strokeBorder(isSelected ? Color(uiColor: .label) : Color(uiColor: .separator).opacity(0.2), lineWidth: isSelected ? 1.5 : 0.5)
+                    .strokeBorder(
+                        isSelected ? LinearGradient(colors: [Color.primary.opacity(0.8), Color.primary.opacity(0.5)], startPoint: .top, endPoint: .bottom) : LinearGradient(colors: [Color.white.opacity(0.2), Color.white.opacity(0.05), Color.clear], startPoint: .top, endPoint: .bottom),
+                        lineWidth: isSelected ? 1.5 : 0.6
+                    )
             }
         }
         .buttonStyle(.plain)
@@ -258,17 +302,14 @@ struct StoryDetailView: View {
         let trimmed = commentText.trimmingCharacters(in: .whitespacesAndNewlines)
         item.userComment = trimmed.isEmpty ? nil : trimmed
         FeedbackStore.recordFeedback(for: item, reaction: item.reaction, comment: item.userComment)
-        feedbackStatusMessage = status
-    }
-
-    private var shareText: String {
-        var text = item.headline
-        if !item.body.isEmpty {
-            text += "\n\n\(item.body)"
+        withAnimation {
+            feedbackStatusMessage = status
         }
-        if let url = item.sourceLinkURL {
-            text += "\n\n\(url.absoluteString)"
+        Task {
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+            withAnimation {
+                feedbackStatusMessage = nil
+            }
         }
-        return text
     }
 }

@@ -1,15 +1,15 @@
 import SwiftUI
 
-/// OHSU healthcare & campus events section with Apple Glass aesthetic.
+/// Section layout for OHSU News & Events with calendar export and map actions.
 struct OHSUSectionView: View {
     var items: [StoryItem]
 
     private var news: [StoryItem] {
-        items.filter { $0.tag != "event" }
+        items.filter { $0.tag?.lowercased() != "event" }
     }
 
     private var events: [StoryItem] {
-        items.filter { $0.tag == "event" }
+        items.filter { $0.tag?.lowercased() == "event" }
     }
 
     var body: some View {
@@ -22,15 +22,16 @@ struct OHSUSectionView: View {
                         .frame(width: 24)
                         .padding(.top, 2)
 
-                    VStack(alignment: .leading, spacing: 5) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text(item.headline)
                             .font(.subheadline.weight(.semibold))
+
                         if !item.body.isEmpty {
                             ExpandableText(
                                 text: item.body,
-                                font: .subheadline,
+                                font: .caption,
                                 foregroundStyle: .secondary,
-                                lineSpacing: 3
+                                lineSpacing: 2
                             )
                         }
                     }
@@ -83,11 +84,18 @@ struct EventRow: View {
                         showingSafari = true
                     } label: {
                         Text("Event details")
-                            .font(.caption)
+                            .font(.caption.weight(.medium))
                             .foregroundStyle(.secondary)
+                            .padding(.horizontal, 9)
+                            .padding(.vertical, 3)
+                            .background(.ultraThinMaterial, in: .capsule)
+                            .overlay {
+                                Capsule()
+                                    .strokeBorder(Color.white.opacity(0.18), lineWidth: 0.5)
+                            }
                     }
                     .buttonStyle(.plain)
-                    .padding(.top, 2)
+                    .padding(.top, 4)
                 }
             }
         }
@@ -126,9 +134,20 @@ struct CommunitySectionView: View {
                             Text(tag)
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.secondary)
-                                .padding(.horizontal, 9)
-                                .padding(.vertical, 5)
-                                .background(Color(uiColor: .tertiarySystemFill), in: .capsule)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(.ultraThinMaterial, in: .capsule)
+                                .overlay {
+                                    Capsule()
+                                        .strokeBorder(
+                                            LinearGradient(
+                                                colors: [Color.white.opacity(0.25), Color.white.opacity(0.06), Color.clear],
+                                                startPoint: .top,
+                                                endPoint: .bottom
+                                            ),
+                                            lineWidth: 0.5
+                                        )
+                                }
                         }
                     }
                 }
@@ -148,24 +167,19 @@ struct SummarySectionView: View {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundStyle(.secondary)
                         .font(.body)
-                    VStack(alignment: .leading, spacing: 4) {
-                        if item.body.isEmpty {
-                            ExpandableText(
-                                text: item.headline,
-                                font: .subheadline,
-                                foregroundStyle: .primary,
-                                lineSpacing: 3
-                            )
-                        } else {
-                            Text(item.headline)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.primary)
+                        .frame(width: 24)
+                        .padding(.top, 1)
 
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.headline)
+                            .font(.subheadline.weight(.semibold))
+
+                        if !item.body.isEmpty {
                             ExpandableText(
                                 text: item.body,
-                                font: .subheadline,
+                                font: .caption,
                                 foregroundStyle: .secondary,
-                                lineSpacing: 3
+                                lineSpacing: 2
                             )
                         }
                     }

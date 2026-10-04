@@ -25,7 +25,11 @@ struct TopicHomeView: View {
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(topic.name)
             .toolbarTitleDisplayMode(.large)
+            .toolbarBackgroundVisibility(.hidden, for: .navigationBar)
             .searchable(text: $searchText, prompt: "Search \(topic.name)")
+            .overlay(alignment: .top) {
+                ProgressiveGlassHeader()
+            }
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
@@ -59,6 +63,34 @@ struct TopicHomeView: View {
                 }
             }
         }
+    }
+}
+
+/// Variable Apple Glass header overlay that creates a seamless gradient transition
+/// for scrolling images and content without harsh cutoffs or hard separator lines.
+struct ProgressiveGlassHeader: View {
+    @Environment(\.colorScheme) private var colorScheme
+    var height: CGFloat = 120
+
+    var body: some View {
+        Rectangle()
+            .fill(.ultraThinMaterial)
+            .mask {
+                LinearGradient(
+                    stops: [
+                        .init(color: .black, location: 0.0),
+                        .init(color: .black, location: 0.52),
+                        .init(color: .black.opacity(0.85), location: 0.70),
+                        .init(color: .black.opacity(0.35), location: 0.88),
+                        .init(color: .clear, location: 1.0)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+            .frame(height: height)
+            .ignoresSafeArea(edges: .top)
+            .allowsHitTesting(false)
     }
 }
 
@@ -150,19 +182,40 @@ struct EditionView: View {
     }
 }
 
-/// A solid reading surface with Apple-standard continuous corners and subtle border.
+/// An Apple Glass reading surface with frosted translucency, subtle specular rim highlight, and soft ambient depth.
 struct BriefCard<Content: View>: View {
+    @Environment(\.colorScheme) private var colorScheme
     @ViewBuilder var content: Content
 
     var body: some View {
         content
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(uiColor: .secondarySystemGroupedBackground), in: .rect(cornerRadius: 18, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .strokeBorder(Color(uiColor: .separator).opacity(0.12), lineWidth: 0.5)
+            .background {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(.ultraThinMaterial)
             }
+            .overlay {
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .white.opacity(colorScheme == .dark ? 0.22 : 0.45), location: 0),
+                                .init(color: .white.opacity(colorScheme == .dark ? 0.06 : 0.15), location: 0.35),
+                                .init(color: Color.clear, location: 0.8)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 0.6
+                    )
+            }
+            .shadow(
+                color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.04),
+                radius: 12,
+                x: 0,
+                y: 4
+            )
     }
 }
 
@@ -198,10 +251,10 @@ struct SectionView: View {
                     VStack(alignment: .leading, spacing: 14) {
                         ForEach(items) { item in
                             ExpandableText(
-                                text: item.body.isEmpty ? item.headline : item.body,
-                                font: .body,
-                                foregroundStyle: .primary,
-                                lineSpacing: 5
+                                text: item.headline,
+                                font: .subheadline,
+                                foregroundStyle: .secondary,
+                                lineSpacing: 3
                             )
                         }
                     }
@@ -211,7 +264,7 @@ struct SectionView: View {
     }
 }
 
-/// A concise card that prioritizes headline, unread dot indicator, source metadata, and expandable snippets.
+/// Individual story card with continuous glass surface, image presentation, and unread indicator.
 struct StoryCard: View {
     @Bindable var item: StoryItem
     @Environment(\.openURL) private var openURL
@@ -233,11 +286,26 @@ struct StoryCard: View {
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 180)
                                     .clipped()
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                            .strokeBorder(
+                                                LinearGradient(
+                                                    colors: [
+                                                        Color.white.opacity(0.2),
+                                                        Color.white.opacity(0.04),
+                                                        Color.clear
+                                                    ],
+                                                    startPoint: .top,
+                                                    endPoint: .bottom
+                                                ),
+                                                lineWidth: 0.5
+                                            )
+                                    }
                             case .failure:
                                 EmptyView()
                             case .empty:
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
                                     .fill(Color(uiColor: .tertiarySystemFill))
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 180)
