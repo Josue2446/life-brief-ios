@@ -28,7 +28,6 @@ struct OHSUSectionView: View {
                         if !item.body.isEmpty {
                             ExpandableText(
                                 text: item.body,
-                                lineLimit: 2,
                                 font: .subheadline,
                                 foregroundStyle: .secondary,
                                 lineSpacing: 3
@@ -76,7 +75,6 @@ struct EventRow: View {
                     if !event.body.isEmpty {
                         ExpandableText(
                             text: event.body,
-                            lineLimit: 2,
                             font: .caption,
                             foregroundStyle: .secondary,
                             lineSpacing: 2
@@ -121,7 +119,6 @@ struct CommunitySectionView: View {
                         if !item.body.isEmpty {
                             ExpandableText(
                                 text: item.body,
-                                lineLimit: 2,
                                 font: .subheadline,
                                 foregroundStyle: .secondary,
                                 lineSpacing: 3
@@ -162,7 +159,6 @@ struct SummarySectionView: View {
                         if !item.body.isEmpty {
                             ExpandableText(
                                 text: item.body,
-                                lineLimit: 2,
                                 font: .subheadline,
                                 foregroundStyle: .secondary,
                                 lineSpacing: 3

@@ -9,7 +9,6 @@ struct SettingsView: View {
 
     @AppStorage("appearance") private var appearance: Appearance = .system
     @AppStorage("textSizeOverride") private var textSizeOverride: TextSizeOverride = .system
-    @AppStorage("previewLineLimit") private var previewLineLimit: Int = 2
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
     @AppStorage("feedURLString") private var feedURLString = BriefStore.defaultFeedURLString
 
@@ -75,27 +74,10 @@ struct SettingsView: View {
                 }
             }
             .pickerStyle(.segmented)
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("Story Preview Lines")
-                    Spacer()
-                    Text("\(previewLineLimit) lines")
-                        .foregroundStyle(.secondary)
-                }
-
-                Picker("Preview Lines", selection: $previewLineLimit) {
-                    Text("2 lines").tag(2)
-                    Text("5 lines").tag(5)
-                    Text("7 lines").tag(7)
-                }
-                .pickerStyle(.segmented)
-            }
-            .padding(.vertical, 4)
         } header: {
             Text("Reading")
         } footer: {
-            Text("Controls how many preview lines appear across cards so text lines up uniformly. Stories exceeding this limit show '... more'.")
+            Text("System follows your iOS Settings text size.")
         }
     }
 
