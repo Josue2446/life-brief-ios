@@ -89,25 +89,35 @@ struct ExpandableText: View {
     }
 }
 
-// MARK: - Instagram Heart Theme Styles
+// MARK: - Instagram Logo Heart Theme Styles
 
 extension ShapeStyle where Self == LinearGradient {
-    /// Instagram's classic like-heart color: a vibrant pinkish-red gradient (#FF3040 to #FF0069).
+    /// Official Instagram logo gradient color stops mapped to Apple's native normalized RGB values.
+    /// Runs from Blue (#515BD4) -> Purple (#8134AF) -> Pink/Magenta (#DD2A7B) -> Orange (#F58529) -> Yellow (#FEDA77).
     static var instagramHeart: LinearGradient {
         LinearGradient(
             colors: [
-                Color(red: 1.0, green: 0.188, blue: 0.251), // #FF3040
-                Color(red: 1.0, green: 0.0, blue: 0.412)     // #FF0069
+                Color(red: 0.318, green: 0.357, blue: 0.831), // Blue (#515BD4)
+                Color(red: 0.506, green: 0.204, blue: 0.686), // Purple (#8134AF)
+                Color(red: 0.867, green: 0.165, blue: 0.482), // Pink/Magenta (#DD2A7B)
+                Color(red: 0.961, green: 0.522, blue: 0.161), // Orange (#F58529)
+                Color(red: 0.996, green: 0.855, blue: 0.467)  // Yellow (#FEDA77)
             ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
+            startPoint: .bottomLeading,
+            endPoint: .topTrailing
         )
     }
 }
 
 extension Color {
-    /// Instagram's vibrant pinkish coral-red (#FF3040)
-    static let instagramRed = Color(red: 1.0, green: 0.188, blue: 0.251)
-    /// Instagram's vibrant magenta-pink (#FF0069)
-    static let instagramPink = Color(red: 1.0, green: 0.0, blue: 0.412)
+    /// Instagram brand blue (#515BD4)
+    static let instagramBlue = Color(red: 0.318, green: 0.357, blue: 0.831)
+    /// Instagram brand purple (#8134AF)
+    static let instagramPurple = Color(red: 0.506, green: 0.204, blue: 0.686)
+    /// Instagram brand magenta-pink (#DD2A7B)
+    static let instagramPink = Color(red: 0.867, green: 0.165, blue: 0.482)
+    /// Instagram brand orange (#F58529)
+    static let instagramOrange = Color(red: 0.961, green: 0.522, blue: 0.161)
+    /// Instagram brand yellow (#FEDA77)
+    static let instagramYellow = Color(red: 0.996, green: 0.855, blue: 0.467)
 }
