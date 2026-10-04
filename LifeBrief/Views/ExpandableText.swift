@@ -8,6 +8,7 @@ struct ExpandableText: View {
     var foregroundStyle: Color = .primary
     var lineSpacing: CGFloat = 4
     var allowSelection: Bool = true
+    @AppStorage("accentColorTheme") private var accentColorTheme: AccentColorTheme = .pink
 
     /// Apple editorial standard preview character limit
     static let standardCharacterLimit: Int = 140
@@ -36,8 +37,8 @@ struct ExpandableText: View {
                             Image(systemName: "chevron.up")
                                 .font(.caption2.weight(.bold))
                         }
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(accentColorTheme.color)
                     }
                     .buttonStyle(.plain)
                 } else {
@@ -53,8 +54,8 @@ struct ExpandableText: View {
                             Image(systemName: "chevron.down")
                                 .font(.caption2.weight(.bold))
                         }
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(accentColorTheme.color)
                     }
                     .buttonStyle(.plain)
                 }

@@ -178,6 +178,7 @@ struct OHSUCard: View {
 /// Compact campus event card formatted for horizontal carousel reading.
 struct EventCard: View {
     var event: StoryItem
+    @AppStorage("accentColorTheme") private var accentColorTheme: AccentColorTheme = .pink
     @State private var showingSafari = false
 
     var body: some View {
@@ -220,6 +221,7 @@ struct EventCard: View {
                         showingSafari = true
                     }
                     .buttonStyle(.bordered)
+                    .tint(accentColorTheme.color)
                     .buttonBorderShape(.capsule)
                     .controlSize(.small)
                 }
