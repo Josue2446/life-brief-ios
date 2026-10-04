@@ -35,6 +35,7 @@ struct FeedItemDTO: Codable {
     var sourceName: String?
     var sourceURL: String?
     var tag: String?
+    var imageURL: String?
 }
 
 // MARK: - Feed service
@@ -73,6 +74,8 @@ enum FeedService {
 
 /// Owns seeding and importing briefing content into SwiftData.
 enum BriefStore {
+    static let defaultFeedURLString = "https://gist.githubusercontent.com/Josue2446/07ad9349799c1e8d5560508ba4b7a21c/raw/feed.json"
+
     private static let isoFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withFullDate]
@@ -118,18 +121,23 @@ enum BriefStore {
     }
 
     /// Attempts to refresh the feed from the remote URL.
-    static func refreshFeed(from urlString: String, into context: ModelContext) async throws {
+    @discardableResult
+    static func refreshFeed(from urlString: String, into context: ModelContext) async throws -> Int {
         guard let url = URL(string: urlString.trimmingCharacters(in: .whitespacesAndNewlines)),
               url.scheme == "https" || url.scheme == "http" else {
-            return
+            return 0
         }
         let dtos = try await FeedService.fetchTopics(from: url)
-        importFeed(dtos, into: context)
+        return importFeed(dtos, into: context)
     }
 
     /// Imports feed topics. New editions are appended; existing ones
-    /// (matched by feedID) are left untouched.
-    static func importFeed(_ dtos: [FeedTopicDTO], into context: ModelContext) {
+    /// (matched by feedID) are preserved without duplicating.
+    /// Returns the number of newly imported editions.
+    @discardableResult
+    static func importFeed(_ dtos: [FeedTopicDTO], into context: ModelContext) -> Int {
+        var newEditionsCount = 0
+
         for dto in dtos {
             let topic: Topic
             if let found = fetchTopic(feedID: dto.id, in: context) {
@@ -143,12 +151,32 @@ enum BriefStore {
                               sortOrder: nextOrder, summary: dto.summary)
                 context.insert(topic)
             }
-            for editionDTO in dto.editions where !topic.editions.contains(where: { $0.feedID == editionDTO.id }) {
-                let edition = makeEdition(from: editionDTO, into: context)
-                topic.editions.append(edition)
+
+            for editionDTO in dto.editions {
+                if let existingEdition = topic.editions.first(where: { $0.feedID == editionDTO.id }) {
+                    // Edition already imported; enrich existing items with any new image URLs
+                    existingEdition.dateLabel = editionDTO.dateLabel
+                    existingEdition.theme = editionDTO.theme
+                    for sectionDTO in editionDTO.sections {
+                        if let section = existingEdition.sections.first(where: { $0.title == sectionDTO.title }) {
+                            for itemDTO in sectionDTO.items {
+                                if let item = section.items.first(where: { $0.headline == itemDTO.headline }) {
+                                    if item.imageURL == nil, let imageURL = itemDTO.imageURL {
+                                        item.imageURL = imageURL
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    let edition = makeEdition(from: editionDTO, into: context)
+                    topic.editions.append(edition)
+                    newEditionsCount += 1
+                }
             }
         }
         try? context.save()
+        return newEditionsCount
     }
 
     // MARK: Private
@@ -193,6 +221,7 @@ enum BriefStore {
                     sourceName: itemDTO.sourceName,
                     sourceURL: itemDTO.sourceURL,
                     tag: itemDTO.tag,
+                    imageURL: itemDTO.imageURL,
                     sortOrder: itemIndex
                 )
                 context.insert(item)

@@ -5,7 +5,7 @@ struct OHSUSectionView: View {
     var items: [StoryItem]
 
     private var news: [StoryItem] {
-        items.filter { $0.tag != "event" }
+        items.filter { $0.tag != "event" && $0.headline.lowercased() != "upcoming events" }
     }
 
     private var events: [StoryItem] {

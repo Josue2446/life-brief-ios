@@ -10,7 +10,7 @@ struct SettingsView: View {
     @AppStorage("appearance") private var appearance: Appearance = .system
     @AppStorage("textSizeOverride") private var textSizeOverride: TextSizeOverride = .system
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
-    @AppStorage("feedURLString") private var feedURLString = "https://example.com/life-brief/feed.json"
+    @AppStorage("feedURLString") private var feedURLString = BriefStore.defaultFeedURLString
 
     @State private var updateStatus: String?
     @State private var isChecking = false
@@ -100,8 +100,12 @@ struct SettingsView: View {
         Task {
             do {
                 let dtos = try await FeedService.fetchTopics(from: url)
-                BriefStore.importFeed(dtos, into: context)
-                updateStatus = "Updated just now."
+                let imported = BriefStore.importFeed(dtos, into: context)
+                if imported > 0 {
+                    updateStatus = "Updated: \(imported) new \(imported == 1 ? "edition" : "editions") imported."
+                } else {
+                    updateStatus = "Everything is up to date."
+                }
             } catch {
                 updateStatus = error.localizedDescription
             }

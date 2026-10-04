@@ -66,7 +66,7 @@ struct EditionView: View {
     @Bindable var edition: Edition
     var searchText: String
     @Environment(\.modelContext) private var context
-    @AppStorage("feedURLString") private var feedURLString = "https://example.com/life-brief/feed.json"
+    @AppStorage("feedURLString") private var feedURLString = BriefStore.defaultFeedURLString
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
 
     /// Structured search result model that pairs a section with its filtered items.
@@ -121,7 +121,7 @@ struct EditionView: View {
         .scrollEdgeEffectStyle(.soft, for: .all)
         .refreshable {
             try? await Task.sleep(nanoseconds: 600_000_000)
-            try? await BriefStore.refreshFeed(from: feedURLString, into: context)
+            _ = try? await BriefStore.refreshFeed(from: feedURLString, into: context)
         }
     }
 
@@ -215,7 +215,34 @@ struct StoryCard: View {
             StoryDetailView(item: item)
         } label: {
             BriefCard {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
+                    if let url = item.imageLinkURL {
+                        AsyncImage(url: url) { phase in
+                            switch phase {
+                            case .success(let image):
+                                image
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 180)
+                                    .clipped()
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            case .failure:
+                                EmptyView()
+                            case .empty:
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color(uiColor: .tertiarySystemFill))
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 180)
+                                    .overlay {
+                                        ProgressView()
+                                    }
+                            @unknown default:
+                                EmptyView()
+                            }
+                        }
+                    }
+
                     HStack(alignment: .top, spacing: 10) {
                         if !item.isRead {
                             Circle()

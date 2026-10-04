@@ -11,6 +11,33 @@ struct StoryDetailView: View {
             VStack(alignment: .leading, spacing: 24) {
                 header
 
+                if let url = item.imageLinkURL {
+                    AsyncImage(url: url) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(maxWidth: .infinity)
+                                .frame(maxHeight: 280)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        case .failure:
+                            EmptyView()
+                        case .empty:
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .fill(Color(uiColor: .tertiarySystemFill))
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 220)
+                                .overlay {
+                                    ProgressView()
+                                }
+                        @unknown default:
+                            EmptyView()
+                        }
+                    }
+                }
+
                 if !item.body.isEmpty {
                     Text(item.body)
                         .font(.body)

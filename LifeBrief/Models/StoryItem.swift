@@ -15,6 +15,8 @@ final class StoryItem {
     var sourceURL: String?
     /// Short tag shown as a capsule, e.g. the subreddit ("r/Portland").
     var tag: String?
+    /// Direct URL to a representative image for the story.
+    var imageURL: String?
     var sortOrder: Int
     var isRead: Bool
     var isBookmarked: Bool
@@ -28,6 +30,7 @@ final class StoryItem {
         sourceName: String? = nil,
         sourceURL: String? = nil,
         tag: String? = nil,
+        imageURL: String? = nil,
         sortOrder: Int = 0,
         isRead: Bool = false,
         isBookmarked: Bool = false
@@ -38,6 +41,7 @@ final class StoryItem {
         self.sourceName = sourceName
         self.sourceURL = sourceURL
         self.tag = tag
+        self.imageURL = imageURL
         self.sortOrder = sortOrder
         self.isRead = isRead
         self.isBookmarked = isBookmarked
@@ -45,6 +49,12 @@ final class StoryItem {
 
     var sourceLinkURL: URL? {
         guard let sourceURL, let url = URL(string: sourceURL),
+              url.scheme == "http" || url.scheme == "https" else { return nil }
+        return url
+    }
+
+    var imageLinkURL: URL? {
+        guard let imageURL, let url = URL(string: imageURL),
               url.scheme == "http" || url.scheme == "https" else { return nil }
         return url
     }
