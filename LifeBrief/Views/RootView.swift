@@ -52,6 +52,7 @@ struct RootView: View {
         .safeAreaBar(edge: .bottom) {
             if visibleTopics.count > 1 {
                 FloatingTabBar(topics: visibleTopics, selection: selectionBinding)
+                    .padding(.bottom, 6)
             }
         }
         .sheet(isPresented: $showingOrganizer) {
@@ -98,8 +99,8 @@ enum TextSizeOverride: String, CaseIterable, Identifiable {
         switch self {
         case .system: return nil
         case .large: return .xxLarge
-        case .extraLarge: return .xxxLarge
-        case .accessibility: return .accessibility1
+        case .extraLarge: return .accessibility1
+        case .accessibility: return .accessibility3
         }
     }
 }
