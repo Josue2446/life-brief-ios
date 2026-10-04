@@ -1,11 +1,14 @@
 import SwiftUI
 
 /// An Apple-style expandable text preview that replaces bulky walls of text
-/// with a standard character snippet followed by "..." and a "more" option to expand and collapse.
+/// with a standard character snippet followed by "... see more" and expands/collapses
+/// with a fluid spring animation.
 struct ExpandableText: View {
+    /// Standard character preview count before the "... see more" expansion.
+    static let standardCharacterLimit: Int = 140
+
     let text: String
-    var lineLimit: Int? = nil
-    var characterLimit: Int = 140
+    var characterLimit: Int = standardCharacterLimit
     var font: Font = .body
     var foregroundStyle: Color = .primary
     var lineSpacing: CGFloat = 4
@@ -13,19 +16,12 @@ struct ExpandableText: View {
 
     @State private var isExpanded: Bool = false
 
-    private var effectiveLimit: Int {
-        if let lineLimit {
-            return max(lineLimit * 45, 60)
-        }
-        return characterLimit
-    }
-
     var body: some View {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty {
             EmptyView()
         } else if !isTruncatable(trimmed) {
-            // Text is short enough to display completely
+            // Text is short enough to display completely without truncation
             formattedText(trimmed)
         } else {
             VStack(alignment: .leading, spacing: 6) {
@@ -33,7 +29,7 @@ struct ExpandableText: View {
                     formattedText(trimmed)
 
                     HStack(spacing: 4) {
-                        Text("Show less")
+                        Text("see less")
                         Image(systemName: "chevron.up")
                             .font(.caption2.weight(.bold))
                     }
@@ -49,10 +45,10 @@ struct ExpandableText: View {
                         }
                     })
                 } else {
-                    formattedText(truncatedSnippet(trimmed) + "...")
+                    formattedText(truncatedSnippet(trimmed))
 
                     HStack(spacing: 4) {
-                        Text("more")
+                        Text("... see more")
                         Image(systemName: "chevron.down")
                             .font(.caption2.weight(.bold))
                     }
@@ -87,16 +83,21 @@ struct ExpandableText: View {
     }
 
     private func isTruncatable(_ content: String) -> Bool {
-        content.count > (effectiveLimit + 15)
+        content.count > (characterLimit + 10)
     }
 
     private func truncatedSnippet(_ content: String) -> String {
-        guard content.count > effectiveLimit else { return content }
-        let index = content.index(content.startIndex, offsetBy: min(effectiveLimit, content.count))
+        guard content.count > characterLimit else { return content }
+        let index = content.index(content.startIndex, offsetBy: min(characterLimit, content.count))
         let prefix = String(content[..<index])
-        if let lastSpace = prefix.lastIndex(of: " ") {
-            return String(prefix[..<lastSpace])
+
+        // Break at the last whitespace near the end to keep words intact
+        if let lastSpace = prefix.lastIndex(where: { $0.isWhitespace }) {
+            let wordBoundaryDistance = prefix.distance(from: lastSpace, to: prefix.endIndex)
+            if wordBoundaryDistance < 20 {
+                return String(prefix[..<lastSpace]).trimmingCharacters(in: .whitespacesAndNewlines)
+            }
         }
-        return prefix
+        return prefix.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

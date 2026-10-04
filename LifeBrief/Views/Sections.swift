@@ -1,11 +1,11 @@
 import SwiftUI
 
-/// OHSU news and events, grouped into an easy-to-scan reading surface.
+/// OHSU healthcare & campus events section with Apple Glass aesthetic.
 struct OHSUSectionView: View {
     var items: [StoryItem]
 
     private var news: [StoryItem] {
-        items.filter { $0.tag != "event" && $0.headline.lowercased() != "upcoming events" }
+        items.filter { $0.tag != "event" }
     }
 
     private var events: [StoryItem] {
@@ -52,48 +52,45 @@ struct OHSUSectionView: View {
     }
 }
 
+/// Compact event presentation with date badge and calendar export.
 struct EventRow: View {
     var event: StoryItem
     @State private var showingSafari = false
 
     var body: some View {
-        Button {
-            if event.sourceLinkURL != nil {
-                showingSafari = true
-            }
-        } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "calendar")
-                    .foregroundStyle(.secondary)
-                    .frame(width: 34, height: 34)
-                    .background(Color(uiColor: .tertiarySystemFill), in: .circle)
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: "calendar")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(width: 24)
+                .padding(.top, 2)
 
-                VStack(alignment: .leading, spacing: 3) {
-                    Text(event.headline)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                    if !event.body.isEmpty {
-                        ExpandableText(
-                            text: event.body,
-                            font: .caption,
-                            foregroundStyle: .secondary,
-                            lineSpacing: 2
-                        )
-                    }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(event.headline)
+                    .font(.subheadline.weight(.medium))
+
+                if !event.body.isEmpty {
+                    ExpandableText(
+                        text: event.body,
+                        font: .caption,
+                        foregroundStyle: .secondary,
+                        lineSpacing: 2
+                    )
                 }
 
-                Spacer(minLength: 8)
-
                 if event.sourceLinkURL != nil {
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.tertiary)
+                    Button {
+                        showingSafari = true
+                    } label: {
+                        Text("Event details")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.top, 2)
                 }
             }
         }
-        .buttonStyle(.plain)
-        .disabled(event.sourceLinkURL == nil)
-        .accessibilityHint(event.sourceLinkURL == nil ? "" : "Opens the event details.")
         .sheet(isPresented: $showingSafari) {
             if let url = event.sourceLinkURL {
                 SafariView(url: url)
@@ -152,11 +149,18 @@ struct SummarySectionView: View {
                         .foregroundStyle(.secondary)
                         .font(.body)
                     VStack(alignment: .leading, spacing: 4) {
-                        Text(item.headline)
-                            .font(.subheadline)
-                            .foregroundStyle(.primary)
+                        if item.body.isEmpty {
+                            ExpandableText(
+                                text: item.headline,
+                                font: .subheadline,
+                                foregroundStyle: .primary,
+                                lineSpacing: 3
+                            )
+                        } else {
+                            Text(item.headline)
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
 
-                        if !item.body.isEmpty {
                             ExpandableText(
                                 text: item.body,
                                 font: .subheadline,

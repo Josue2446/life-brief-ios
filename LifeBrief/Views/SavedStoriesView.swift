@@ -53,7 +53,6 @@ struct SavedStoriesView: View {
                                 if !item.body.isEmpty {
                                     ExpandableText(
                                         text: item.body,
-                                        lineLimit: 2,
                                         font: .subheadline,
                                         foregroundStyle: .secondary,
                                         lineSpacing: 3,

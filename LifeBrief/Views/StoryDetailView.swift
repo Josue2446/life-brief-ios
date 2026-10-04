@@ -46,7 +46,6 @@ struct StoryDetailView: View {
                 if !item.body.isEmpty {
                     ExpandableText(
                         text: item.body,
-                        lineLimit: 4,
                         font: .body,
                         foregroundStyle: .primary,
                         lineSpacing: 6
