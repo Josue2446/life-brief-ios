@@ -98,10 +98,10 @@ struct OHSUSectionView: View {
     }
 }
 
-/// Compact OHSU story card formatted for horizontal carousel reading.
+/// Compact OHSU story card formatted for horizontal carousel reading with built-in app browser.
 struct OHSUCard: View {
     @Bindable var item: StoryItem
-    @Environment(\.openURL) private var openURL
+    @State private var showingSafari = false
 
     var body: some View {
         BriefCard {
@@ -128,6 +128,12 @@ struct OHSUCard: View {
                     .multilineTextAlignment(.leading)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if item.sourceLinkURL != nil {
+                            showingSafari = true
+                        }
+                    }
 
                 if !item.body.isEmpty {
                     ExpandableText(
@@ -141,9 +147,9 @@ struct OHSUCard: View {
                 if let sourceName = item.sourceName {
                     Spacer(minLength: 4)
 
-                    if let url = item.sourceLinkURL {
+                    if item.sourceLinkURL != nil {
                         Button {
-                            openURL(url)
+                            showingSafari = true
                         } label: {
                             Label(sourceName, systemImage: "arrow.up.right")
                                 .font(.caption2.weight(.medium))
@@ -160,6 +166,12 @@ struct OHSUCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(width: 290)
+        .sheet(isPresented: $showingSafari) {
+            if let url = item.sourceLinkURL {
+                SafariView(url: url)
+                    .ignoresSafeArea()
+            }
+        }
     }
 }
 
@@ -270,6 +282,7 @@ struct CommunitySectionView: View {
 /// Compact community card formatted for horizontal carousel reading.
 struct CommunityCard: View {
     @Bindable var item: StoryItem
+    @State private var showingSafari = false
 
     var body: some View {
         BriefCard {
@@ -295,6 +308,12 @@ struct CommunityCard: View {
                     .multilineTextAlignment(.leading)
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if item.sourceLinkURL != nil {
+                            showingSafari = true
+                        }
+                    }
 
                 if !item.body.isEmpty {
                     ExpandableText(
@@ -304,10 +323,35 @@ struct CommunityCard: View {
                         lineSpacing: 2
                     )
                 }
+
+                if let sourceName = item.sourceName ?? (item.sourceLinkURL != nil ? "Source" : nil) {
+                    Spacer(minLength: 4)
+
+                    if item.sourceLinkURL != nil {
+                        Button {
+                            showingSafari = true
+                        } label: {
+                            Label(sourceName, systemImage: "arrow.up.right")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        Text(sourceName)
+                            .font(.caption2.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(width: 290)
+        .sheet(isPresented: $showingSafari) {
+            if let url = item.sourceLinkURL {
+                SafariView(url: url)
+                    .ignoresSafeArea()
+            }
+        }
     }
 }
 
