@@ -11,6 +11,7 @@ struct TopicHomeView: View {
     @State private var isScrolled = false
     @State private var showingInPlaceSearch = false
     @FocusState private var isInPlaceSearchFocused: Bool
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         NavigationStack {
@@ -129,15 +130,36 @@ struct TopicHomeView: View {
             .padding(.vertical, 8)
             .background(Color(uiColor: .secondarySystemFill), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
 
+            // Apple Glass "X" Button
             Button {
                 dismissInPlaceSearch()
             } label: {
-                Text("Cancel")
-                    .font(.subheadline)
-                    .foregroundStyle(FloatingTabBar.appleMusicTint)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 4)
-                    .contentShape(Rectangle())
+                Image(systemName: "xmark")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(.primary)
+                    .frame(width: 34, height: 34)
+                    .glassEffect(.regular.interactive(), in: Circle())
+                    .overlay {
+                        Circle()
+                            .strokeBorder(
+                                LinearGradient(
+                                    colors: [
+                                        Color.white.opacity(0.85),
+                                        Color.white.opacity(0.25),
+                                        Color.clear
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ),
+                                lineWidth: 0.8
+                            )
+                    }
+                    .shadow(
+                        color: Color.black.opacity(colorScheme == .dark ? 0.35 : 0.08),
+                        radius: 6,
+                        x: 0,
+                        y: 3
+                    )
             }
             .buttonStyle(.plain)
             .simultaneousGesture(
@@ -145,6 +167,7 @@ struct TopicHomeView: View {
                     dismissInPlaceSearch()
                 }
             )
+            .accessibilityLabel("Dismiss Search")
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
