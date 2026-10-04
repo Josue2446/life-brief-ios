@@ -116,7 +116,7 @@ struct StoryDetailView: View {
                 }
                 .accessibilityLabel(item.isRead ? "Mark as unread" : "Mark as read")
 
-                BookmarkButton(item: item)
+                FavoriteHeartButton(item: item)
 
                 ShareLink(item: shareText, preview: SharePreview(item.headline)) {
                     Label("Share", systemImage: "square.and.arrow.up")

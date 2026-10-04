@@ -56,6 +56,12 @@ final class StoryItem {
         self.userComment = userComment
     }
 
+    /// Alias for isBookmarked to represent favorites
+    var isFavorite: Bool {
+        get { isBookmarked }
+        set { isBookmarked = newValue }
+    }
+
     var reaction: ReactionType? {
         get {
             guard let userReaction else { return nil }

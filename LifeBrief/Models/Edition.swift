@@ -35,4 +35,54 @@ final class Edition {
     var sortedSections: [BriefSection] {
         sections.sorted { $0.sortOrder < $1.sortOrder }
     }
+
+    /// Clean, concise date label suited for editorial mastheads without wrapping.
+    /// e.g. "Week of September 28 - October 4, 2026" -> "Sep 28 – Oct 4, 2026"
+    /// and "Saturday, October 3, 2026" -> "Sat, Oct 3, 2026"
+    var conciseDateLabel: String {
+        var text = dateLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        if text.isEmpty {
+            return date.formatted(.dateTime.month(.abbreviated).day().year())
+        }
+
+        // Remove "Week of " prefix
+        if text.lowercased().hasPrefix("week of ") {
+            text = String(text.dropFirst(8))
+        }
+
+        // Abbreviate month names
+        let monthReplacements = [
+            ("September", "Sep"),
+            ("October", "Oct"),
+            ("November", "Nov"),
+            ("December", "Dec"),
+            ("January", "Jan"),
+            ("February", "Feb"),
+            ("March", "Mar"),
+            ("April", "Apr"),
+            ("August", "Aug")
+        ]
+        for (full, abbr) in monthReplacements {
+            text = text.replacingOccurrences(of: full, with: abbr)
+        }
+
+        // Abbreviate day of week
+        let dayReplacements = [
+            ("Monday, ", "Mon, "),
+            ("Tuesday, ", "Tue, "),
+            ("Wednesday, ", "Wed, "),
+            ("Thursday, ", "Thu, "),
+            ("Friday, ", "Fri, "),
+            ("Saturday, ", "Sat, "),
+            ("Sunday, ", "Sun, ")
+        ]
+        for (full, abbr) in dayReplacements {
+            text = text.replacingOccurrences(of: full, with: abbr)
+        }
+
+        // Standard typographic en-dash
+        text = text.replacingOccurrences(of: " - ", with: " – ")
+
+        return text
+    }
 }

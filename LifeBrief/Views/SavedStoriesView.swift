@@ -1,21 +1,21 @@
 import SwiftUI
 import SwiftData
 
-/// All bookmarked stories across all topics, searchable and manageable in one place.
+/// All favorited stories across all topics, searchable and manageable in one place.
 struct SavedStoriesView: View {
     @Environment(\.dismiss) private var dismiss
     @Query(
         filter: #Predicate<StoryItem> { $0.isBookmarked },
         sort: \StoryItem.headline
-    ) private var savedStories: [StoryItem]
+    ) private var favoriteStories: [StoryItem]
 
     @State private var searchText = ""
 
     private var filteredStories: [StoryItem] {
         if searchText.trimmingCharacters(in: .whitespaces).isEmpty {
-            return savedStories
+            return favoriteStories
         }
-        return savedStories.filter { item in
+        return favoriteStories.filter { item in
             item.headline.localizedCaseInsensitiveContains(searchText) ||
             item.body.localizedCaseInsensitiveContains(searchText) ||
             (item.sourceName?.localizedCaseInsensitiveContains(searchText) ?? false)
@@ -24,12 +24,18 @@ struct SavedStoriesView: View {
 
     var body: some View {
         Group {
-            if savedStories.isEmpty {
-                ContentUnavailableView(
-                    "No Saved Stories",
-                    systemImage: "bookmark",
-                    description: Text("Stories you bookmark while reading will appear here.")
-                )
+            if favoriteStories.isEmpty {
+                ContentUnavailableView {
+                    Label {
+                        Text("No Favorites")
+                    } icon: {
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 48))
+                            .foregroundStyle(Color.red)
+                    }
+                } description: {
+                    Text("Stories you favorite while reading will appear here.")
+                }
             } else if filteredStories.isEmpty {
                 ContentUnavailableView.search(text: searchText)
             } else {
@@ -39,12 +45,19 @@ struct SavedStoriesView: View {
                             StoryDetailView(item: item)
                         } label: {
                             VStack(alignment: .leading, spacing: 6) {
-                                if let source = item.sourceName {
-                                    Text(source)
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .textCase(.uppercase)
+                                HStack(spacing: 6) {
+                                    Image(systemName: "heart.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(Color.red)
+
+                                    if let source = item.sourceName {
+                                        Text(source)
+                                            .font(.caption.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .textCase(.uppercase)
+                                    }
                                 }
+
                                 Text(item.headline)
                                     .font(.headline)
                                     .foregroundStyle(item.isRead ? .secondary : .primary)
@@ -65,10 +78,10 @@ struct SavedStoriesView: View {
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
                                 withAnimation {
-                                    item.isBookmarked = false
+                                    item.isFavorite = false
                                 }
                             } label: {
-                                Label("Remove", systemImage: "bookmark.slash")
+                                Label("Remove", systemImage: "heart.slash")
                             }
                         }
                         .swipeActions(edge: .leading) {
@@ -86,9 +99,9 @@ struct SavedStoriesView: View {
                 .listStyle(.insetGrouped)
             }
         }
-        .navigationTitle("Saved Stories")
+        .navigationTitle("Favorites")
         .navigationBarTitleDisplayMode(.large)
-        .searchable(text: $searchText, prompt: "Search Saved Stories")
+        .searchable(text: $searchText, prompt: "Search Favorites")
         .toolbar {
             ToolbarItem(placement: .confirmationAction) {
                 Button("Done") { dismiss() }

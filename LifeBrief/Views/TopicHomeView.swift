@@ -6,7 +6,7 @@ struct TopicHomeView: View {
     @Bindable var topic: Topic
     @Binding var showingOrganizer: Bool
     @Binding var showingSettings: Bool
-    @State private var showingSavedStories = false
+    @State private var showingFavorites = false
     @State private var searchText = ""
 
     var body: some View {
@@ -29,11 +29,12 @@ struct TopicHomeView: View {
             .toolbar {
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     Button {
-                        showingSavedStories = true
+                        showingFavorites = true
                     } label: {
-                        Image(systemName: "bookmark")
+                        Image(systemName: "heart.fill")
+                            .foregroundStyle(Color.red)
                     }
-                    .accessibilityLabel("Saved stories")
+                    .accessibilityLabel("Favorites")
 
                     Menu {
                         Button {
@@ -53,7 +54,7 @@ struct TopicHomeView: View {
                     .accessibilityLabel("More Options")
                 }
             }
-            .sheet(isPresented: $showingSavedStories) {
+            .sheet(isPresented: $showingFavorites) {
                 NavigationStack {
                     SavedStoriesView()
                 }
@@ -129,13 +130,16 @@ struct EditionView: View {
     private var editionHeader: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Label(edition.dateLabel, systemImage: "calendar")
+                Label(edition.conciseDateLabel, systemImage: "calendar")
+                    .lineLimit(1)
                 Text("•")
                 Text("\(totalStoryCount) \(totalStoryCount == 1 ? "story" : "stories")")
             }
             .font(.caption.weight(.bold))
             .foregroundStyle(.secondary)
             .textCase(.uppercase)
+            .lineLimit(1)
+            .minimumScaleFactor(0.85)
 
             if !edition.theme.isEmpty {
                 ExpandableText(
@@ -268,9 +272,7 @@ struct StoryCard: View {
                                 .foregroundStyle(Color.primary)
                         }
 
-                        Image(systemName: item.isBookmarked ? "bookmark.fill" : "bookmark")
-                            .font(.subheadline)
-                            .foregroundStyle(item.isBookmarked ? AnyShapeStyle(Color.primary) : AnyShapeStyle(.tertiary))
+                        FavoriteHeartButton(item: item)
                     }
 
                     if !item.body.isEmpty {
@@ -306,11 +308,11 @@ struct StoryCard: View {
             }
 
             Button {
-                item.isBookmarked.toggle()
+                item.isFavorite.toggle()
             } label: {
                 Label(
-                    item.isBookmarked ? "Remove Bookmark" : "Bookmark",
-                    systemImage: item.isBookmarked ? "bookmark.slash" : "bookmark"
+                    item.isFavorite ? "Remove from Favorites" : "Add to Favorites",
+                    systemImage: item.isFavorite ? "heart.slash" : "heart.fill"
                 )
             }
 
@@ -355,17 +357,45 @@ struct StoryCard: View {
     }
 }
 
-struct BookmarkButton: View {
+/// Instagram-style animated favorite heart button with Apple keyframe spring pop and vibrant red fill.
+struct FavoriteHeartButton: View {
     @Bindable var item: StoryItem
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
 
+    @State private var bounceTrigger = 0
+
     var body: some View {
         Button {
-            item.isBookmarked.toggle()
+            let willBeFavorite = !item.isFavorite
+            item.isFavorite = willBeFavorite
+
+            if willBeFavorite {
+                bounceTrigger += 1
+            }
         } label: {
-            Image(systemName: item.isBookmarked ? "bookmark.fill" : "bookmark")
+            Image(systemName: item.isFavorite ? "heart.fill" : "heart")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(item.isFavorite ? Color.red : Color.secondary)
+                .symbolEffect(.bounce.up, value: bounceTrigger)
+                .keyframeAnimator(
+                    initialValue: 1.0,
+                    trigger: bounceTrigger
+                ) { content, scale in
+                    content.scaleEffect(scale)
+                } keyframes: { _ in
+                    KeyframeTrack {
+                        CubicKeyframe(0.8, duration: 0.08)
+                        SpringKeyframe(1.35, duration: 0.16, spring: .bouncy)
+                        SpringKeyframe(1.0, duration: 0.16, spring: .snappy)
+                    }
+                }
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
         }
-        .sensoryFeedback(.selection, trigger: item.isBookmarked) { _, _ in hapticsEnabled }
-        .accessibilityLabel(item.isBookmarked ? "Remove bookmark" : "Bookmark")
+        .buttonStyle(.borderless)
+        .sensoryFeedback(.impact(weight: .medium, intensity: 1.0), trigger: bounceTrigger) { _, _ in
+            hapticsEnabled
+        }
+        .accessibilityLabel(item.isFavorite ? "Remove from Favorites" : "Add to Favorites")
     }
 }
