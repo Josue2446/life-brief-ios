@@ -7,14 +7,21 @@ struct TopicHomeView: View {
     @Binding var showingOrganizer: Bool
     @Binding var showingSettings: Bool
     @State private var showingFavorites = false
-    @State private var showingSearch = false
     @State private var searchText = ""
+    @State private var isScrolled = false
+    @State private var scrollToTopTrigger = 0
+    @FocusState private var isSearchFocused: Bool
 
     var body: some View {
         NavigationStack {
             Group {
                 if let edition = topic.latestEdition {
-                    EditionView(edition: edition, searchText: searchText)
+                    EditionView(
+                        edition: edition,
+                        searchText: searchText,
+                        isScrolled: $isScrolled,
+                        scrollToTopTrigger: scrollToTopTrigger
+                    )
                 } else {
                     ContentUnavailableView(
                         "\(topic.name) is on its way",
@@ -25,15 +32,28 @@ struct TopicHomeView: View {
             }
             .background(Color(uiColor: .systemGroupedBackground))
             .navigationTitle(topic.name)
-            .searchable(text: $searchText, isPresented: $showingSearch, prompt: "Search \(topic.name)...")
+            .searchable(
+                text: $searchText,
+                placement: .navigationBarDrawer(displayMode: .automatic),
+                prompt: "Search \(topic.name)..."
+            )
+            .searchFocused($isSearchFocused)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        showingSearch.toggle()
-                    } label: {
-                        Image(systemName: "magnifyingglass")
+                if isScrolled {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            scrollToTopTrigger += 1
+                            Task { @MainActor in
+                                try? await Task.sleep(nanoseconds: 180_000_000)
+                                isSearchFocused = true
+                            }
+                        } label: {
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 16, weight: .semibold))
+                        }
+                        .accessibilityLabel("Search")
+                        .transition(.scale(scale: 0.8).combined(with: .opacity))
                     }
-                    .accessibilityLabel("Search")
                 }
 
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -63,6 +83,7 @@ struct TopicHomeView: View {
                     .accessibilityLabel("More Options")
                 }
             }
+            .animation(.spring(response: 0.28, dampingFraction: 0.82), value: isScrolled)
             .sheet(isPresented: $showingFavorites) {
                 NavigationStack {
                     SavedStoriesView()
@@ -76,6 +97,8 @@ struct TopicHomeView: View {
 struct EditionView: View {
     @Bindable var edition: Edition
     var searchText: String
+    @Binding var isScrolled: Bool
+    var scrollToTopTrigger: Int
 
     @Environment(\.modelContext) private var context
     @AppStorage("feedURLString") private var feedURLString = BriefStore.defaultFeedURLString
@@ -109,31 +132,51 @@ struct EditionView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(alignment: .leading, spacing: 28) {
-                if !searchText.isEmpty && filteredResults.isEmpty {
-                    ContentUnavailableView.search(text: searchText)
-                        .padding(.top, 60)
-                } else {
-                    if searchText.isEmpty {
-                        editionHeader
-                    }
+        ScrollViewReader { proxy in
+            ScrollView {
+                Color.clear
+                    .frame(height: 0)
+                    .id("edition-top")
 
-                    ForEach(filteredResults) { result in
-                        SectionView(section: result.section, items: result.matchingItems)
+                LazyVStack(alignment: .leading, spacing: 28) {
+                    if !searchText.isEmpty && filteredResults.isEmpty {
+                        ContentUnavailableView.search(text: searchText)
+                            .padding(.top, 60)
+                    } else {
+                        if searchText.isEmpty {
+                            editionHeader
+                        }
+
+                        ForEach(filteredResults) { result in
+                            SectionView(section: result.section, items: result.matchingItems)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 96) // Inset comfortably above floating glass capsule
+            }
+            .onScrollGeometryChange(for: Bool.self, of: { geometry in
+                geometry.contentOffset.y > 45
+            }) { oldValue, newValue in
+                if oldValue != newValue {
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.82)) {
+                        isScrolled = newValue
                     }
                 }
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 96) // Inset comfortably above floating glass capsule
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .scrollEdgeEffectStyle(.soft, for: .top)
-        .background(Color(uiColor: .systemGroupedBackground))
-        .refreshable {
-            try? await Task.sleep(nanoseconds: 600_000_000)
-            _ = try? await BriefStore.refreshFeed(from: feedURLString, into: context)
+            .onChange(of: scrollToTopTrigger) {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    proxy.scrollTo("edition-top", anchor: .top)
+                }
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .scrollEdgeEffectStyle(.soft, for: .top)
+            .background(Color(uiColor: .systemGroupedBackground))
+            .refreshable {
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                _ = try? await BriefStore.refreshFeed(from: feedURLString, into: context)
+            }
         }
     }
 
