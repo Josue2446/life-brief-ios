@@ -32,7 +32,7 @@ struct TopicHomeView: View {
                         showingFavorites = true
                     } label: {
                         Image(systemName: "heart.fill")
-                            .foregroundStyle(Color.red)
+                            .foregroundStyle(LinearGradient.instagramHeart)
                     }
                     .accessibilityLabel("Favorites")
 
@@ -357,7 +357,7 @@ struct StoryCard: View {
     }
 }
 
-/// Instagram-style animated favorite heart button with Apple keyframe spring pop and vibrant red fill.
+/// Instagram-style animated favorite heart button with Apple keyframe spring pop and vibrant gradient fill.
 struct FavoriteHeartButton: View {
     @Bindable var item: StoryItem
     @AppStorage("hapticsEnabled") private var hapticsEnabled = true
@@ -375,7 +375,11 @@ struct FavoriteHeartButton: View {
         } label: {
             Image(systemName: item.isFavorite ? "heart.fill" : "heart")
                 .font(.system(size: 18, weight: .semibold))
-                .foregroundStyle(item.isFavorite ? Color.red : Color.secondary)
+                .foregroundStyle(
+                    item.isFavorite
+                        ? AnyShapeStyle(LinearGradient.instagramHeart)
+                        : AnyShapeStyle(Color.secondary)
+                )
                 .symbolEffect(.bounce.up, value: bounceTrigger)
                 .keyframeAnimator(
                     initialValue: 1.0,
@@ -384,9 +388,9 @@ struct FavoriteHeartButton: View {
                     content.scaleEffect(scale)
                 } keyframes: { _ in
                     KeyframeTrack {
-                        CubicKeyframe(0.8, duration: 0.08)
-                        SpringKeyframe(1.35, duration: 0.16, spring: .bouncy)
-                        SpringKeyframe(1.0, duration: 0.16, spring: .snappy)
+                        CubicKeyframe(0.82, duration: 0.06)
+                        SpringKeyframe(1.35, duration: 0.18, spring: .init(response: 0.3, dampingRatio: 0.4))
+                        SpringKeyframe(1.0, duration: 0.16, spring: .init(response: 0.3, dampingRatio: 0.6))
                     }
                 }
                 .frame(width: 32, height: 32)

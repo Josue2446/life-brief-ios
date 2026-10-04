@@ -31,7 +31,7 @@ struct SavedStoriesView: View {
                     } icon: {
                         Image(systemName: "heart.fill")
                             .font(.system(size: 48))
-                            .foregroundStyle(Color.red)
+                            .foregroundStyle(LinearGradient.instagramHeart)
                     }
                 } description: {
                     Text("Stories you favorite while reading will appear here.")
@@ -48,7 +48,7 @@ struct SavedStoriesView: View {
                                 HStack(spacing: 6) {
                                     Image(systemName: "heart.fill")
                                         .font(.caption)
-                                        .foregroundStyle(Color.red)
+                                        .foregroundStyle(LinearGradient.instagramHeart)
 
                                     if let source = item.sourceName {
                                         Text(source)

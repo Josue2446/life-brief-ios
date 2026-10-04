@@ -88,3 +88,26 @@ struct ExpandableText: View {
         }
     }
 }
+
+// MARK: - Instagram Heart Theme Styles
+
+extension ShapeStyle where Self == LinearGradient {
+    /// Instagram's classic like-heart color: a vibrant pinkish-red gradient (#FF3040 to #FF0069).
+    static var instagramHeart: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color(red: 1.0, green: 0.188, blue: 0.251), // #FF3040
+                Color(red: 1.0, green: 0.0, blue: 0.412)     // #FF0069
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+}
+
+extension Color {
+    /// Instagram's vibrant pinkish coral-red (#FF3040)
+    static let instagramRed = Color(red: 1.0, green: 0.188, blue: 0.251)
+    /// Instagram's vibrant magenta-pink (#FF0069)
+    static let instagramPink = Color(red: 1.0, green: 0.0, blue: 0.412)
+}
